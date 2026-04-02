@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import { useUIStore } from '@/stores/ui-store'
 import type { ChatMessage } from '@/types'
 
@@ -12,12 +12,25 @@ const makeMessage = (overrides: Partial<ChatMessage> = {}): ChatMessage => ({
 
 describe('uiStore', () => {
   beforeEach(() => {
+    // Reset localStorage
+    localStorage.clear()
+    
+    // Reset document class
+    document.documentElement.classList.remove('dark')
+    document.documentElement.classList.add('dark')
+    
     useUIStore.setState({
       isDrawerOpen: false,
       isModalOpen: false,
       isChatOpen: false,
       chatMessages: [],
+      theme: 'dark',
     })
+  })
+
+  afterEach(() => {
+    localStorage.clear()
+    document.documentElement.classList.remove('dark')
   })
 
   // --- drawer ---
@@ -71,5 +84,69 @@ describe('uiStore', () => {
     expect(msgs).toHaveLength(2)
     expect(msgs[0].content).toBe('first')
     expect(msgs[1].content).toBe('second')
+  })
+
+  // --- theme ---
+
+  describe('theme management', () => {
+    it('defaults to dark theme', () => {
+      expect(useUIStore.getState().theme).toBe('dark')
+    })
+
+    it('sets theme to light', () => {
+      useUIStore.getState().setTheme('light')
+      expect(useUIStore.getState().theme).toBe('light')
+    })
+
+    it('sets theme to dark', () => {
+      useUIStore.getState().setTheme('dark')
+      expect(useUIStore.getState().theme).toBe('dark')
+    })
+
+    it('applies dark class to html element when setting dark theme', () => {
+      document.documentElement.classList.remove('dark')
+      useUIStore.getState().setTheme('dark')
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    })
+
+    it('removes dark class from html element when setting light theme', () => {
+      document.documentElement.classList.add('dark')
+      useUIStore.getState().setTheme('light')
+      expect(document.documentElement.classList.contains('dark')).toBe(false)
+    })
+
+    it('persists theme to localStorage', () => {
+      useUIStore.getState().setTheme('light')
+      expect(localStorage.getItem('theme')).toBe('light')
+      
+      useUIStore.getState().setTheme('dark')
+      expect(localStorage.getItem('theme')).toBe('dark')
+    })
+
+    it('toggles theme between dark and light', () => {
+      useUIStore.getState().setTheme('dark')
+      useUIStore.getState().toggleTheme()
+      expect(useUIStore.getState().theme).toBe('light')
+      
+      useUIStore.getState().toggleTheme()
+      expect(useUIStore.getState().theme).toBe('dark')
+    })
+
+    it('applies correct html class when toggling theme', () => {
+      useUIStore.getState().setTheme('dark')
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+      
+      useUIStore.getState().toggleTheme()
+      expect(document.documentElement.classList.contains('dark')).toBe(false)
+      
+      useUIStore.getState().toggleTheme()
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    })
+
+    it('persists toggled theme to localStorage', () => {
+      useUIStore.getState().setTheme('dark')
+      useUIStore.getState().toggleTheme()
+      expect(localStorage.getItem('theme')).toBe('light')
+    })
   })
 })
