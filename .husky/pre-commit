@@ -1,0 +1,33 @@
+#!/usr/bin/env sh
+
+# pre-commit: TypeScript type check + ESLint (staged) + Unit tests
+# Agent 每次 commit 都必须通过这三项检查
+
+# 1. TypeScript type check
+echo "🔍 Running TypeScript type check..."
+pnpm exec tsc -b 2>&1
+TSC_EXIT=$?
+if [ $TSC_EXIT -ne 0 ]; then
+  echo "❌ pre-commit FAILED: TypeScript type check errors."
+  exit 1
+fi
+
+# 2. ESLint (staged files only, via lint-staged)
+echo "🔍 Running ESLint on staged files..."
+pnpm exec lint-staged 2>&1
+LINT_EXIT=$?
+if [ $LINT_EXIT -ne 0 ]; then
+  echo "❌ pre-commit FAILED: ESLint errors in staged files."
+  exit 1
+fi
+
+# 3. Unit tests
+echo "🔍 Running unit tests..."
+pnpm test 2>&1
+TEST_EXIT=$?
+if [ $TEST_EXIT -ne 0 ]; then
+  echo "❌ pre-commit FAILED: Unit tests did not pass."
+  exit 1
+fi
+
+echo "✅ pre-commit passed: TypeScript + ESLint + Tests"

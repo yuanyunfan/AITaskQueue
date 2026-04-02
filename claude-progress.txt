@@ -1,0 +1,84 @@
+# AITaskQueue — Progress Log
+# 每次 Claude Code session 结束时更新此文件，下次 session 开始时读取以恢复上下文。
+
+## Current Status: Backend Phase 2 完成 — REST API + Schemas + Services 就位
+
+## Completed ✅
+
+### Phase 0: 项目脚手架 (2026-04-02)
+- [x] Vite + React 18 + TypeScript 项目创建
+- [x] 依赖安装: tailwindcss v4, zustand, react-router-dom, @dnd-kit, lucide-react, clsx, tailwind-merge
+- [x] Vite 配置: React plugin + Tailwind plugin + `@/` path alias
+- [x] tsconfig 配置: strict mode, path alias
+- [x] index.html: 中文 lang, 深色 body 背景
+- [x] src/index.css: Tailwind v4 @theme 定义所有设计 token + 自定义动画
+
+### Phase 1: 类型 + Store + Mock 数据 (2026-04-02)
+- [x] src/types/ — Task, Agent, Activity 类型定义
+- [x] src/constants/colors.ts — 状态/队列/优先级颜色映射
+- [x] src/lib/utils.ts — cn(), formatTime(), formatDuration(), generateId()
+- [x] src/stores/ — 5 个 Zustand store (task, agent, activity, ui, history)
+- [x] src/constants/mock-data.ts — 种子数据 (9 tasks, 3 agents, 5 decisions, 6 events, 3 notifications, 8 history)
+- [x] src/mock/simulator.ts — MockSimulator 类 (5 个 setInterval 循环)
+- [x] src/hooks/use-simulator.ts — 初始化 hook
+
+### Harness 文件 (2026-04-02)
+- [x] CLAUDE.md, README.md, init.sh, claude-progress.txt, feature_list.json, CHANGELOG.md
+- [x] Vitest 配置 + test/setup.ts + task-store.test.ts (7 tests passing)
+
+### Phase 2: Layout + 路由 (2026-04-02)
+- [x] src/components/layout/Sidebar.tsx — 左侧 56px 导航栏
+- [x] src/components/layout/AppLayout.tsx — 主布局 (Sidebar + Outlet + Overlays)
+- [x] src/App.tsx — React Router 配置 (4 routes) + 全局键盘快捷键
+- [x] src/main.tsx — 入口文件
+
+### Phase 3: 共享组件 (2026-04-02)
+- [x] StatusBadge, PriorityBadge, ProgressBar, PageHeader
+- [x] NotificationBell (含下拉通知列表)
+
+### Phase 4: Dashboard 页面 (2026-04-02)
+- [x] StatusCards, MainAgentCard, QueueOverview, ActiveTasksTable, LiveFeed
+- [x] DashboardPage.tsx
+
+### Phase 5: Queue 页面 (2026-04-02)
+- [x] KanbanBoard, KanbanColumn, TaskCard (with @dnd-kit drag-and-drop)
+- [x] QueuePage.tsx
+
+### Phase 6: Agents 页面 (2026-04-02)
+- [x] MainAgentPanel + DecisionLog, SubAgentCard
+- [x] AgentsPage.tsx
+
+### Phase 7: History 页面 (2026-04-02)
+- [x] StatsBar, HistoryFilters, HistoryTable
+- [x] HistoryPage.tsx
+
+### Phase 8: 覆盖层组件 (2026-04-02)
+- [x] TaskDrawer (右侧任务详情抽屉)
+- [x] NewTaskModal (新建任务弹窗)
+- [x] ChatPanel (主 Agent 对话面板)
+
+### Phase 10 (partial): 收尾 (2026-04-02)
+- [x] 键盘快捷键 (N=新建, ESC=关闭)
+- [x] 清理 Vite 模板残留文件 (hero.png, react.svg, vite.svg, icons.svg, App.css)
+
+## Verification
+- `pnpm build` ✅ (tsc + vite build, 0 errors)
+- `pnpm test` ✅ (7 tests passing)
+- `pnpm dev` ✅ (dev server at http://localhost:5173)
+
+## Not Started ⏳
+
+### Phase 9: Mock Simulator 验证
+- [ ] 打开浏览器端到端验证所有 simulator 行为
+- [ ] 验证进度条实时更新
+- [ ] 验证任务自动完成/进入验收
+- [ ] 验证新任务随机入队
+
+### Phase 10 (remaining):
+- [ ] 过渡动画效果打磨
+- [ ] 更多 store 单元测试
+
+## Architecture Notes
+- 所有 src/mock/ 下的代码是临时模拟层，未来替换为 WebSocket 后端
+- Store 接口变更时必须同步更新 simulator
+- 组件间数据流全部通过 Zustand store，不超过 1 层 prop drilling

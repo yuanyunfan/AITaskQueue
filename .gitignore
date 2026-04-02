@@ -1,0 +1,48 @@
+# Dependencies
+node_modules
+backend/.venv
+
+# Build output
+dist
+dist-ssr
+
+# Vite
+*.local
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.egg-info
+
+# Environment (contains secrets)
+.env
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Test coverage
+coverage
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Superset
+.superset/

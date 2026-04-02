@@ -1,0 +1,143 @@
+{
+  "project": "AITaskQueue",
+  "version": "0.2.0",
+  "last_updated": "2026-04-02",
+  "phases": [
+    {
+      "id": "phase-0",
+      "name": "项目脚手架",
+      "status": "done",
+      "features": [
+        { "id": "f001", "name": "Vite + React + TypeScript 初始化", "passes": true },
+        { "id": "f002", "name": "Tailwind CSS v4 + 设计 token", "passes": true },
+        { "id": "f003", "name": "依赖安装 (zustand, dnd-kit, router, lucide)", "passes": true },
+        { "id": "f004", "name": "Path alias @/ 配置", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-1",
+      "name": "类型 + Store + Mock 数据",
+      "status": "done",
+      "features": [
+        { "id": "f010", "name": "TypeScript 类型定义 (Task, Agent, Activity)", "passes": true },
+        { "id": "f011", "name": "颜色常量映射 (colors.ts)", "passes": true },
+        { "id": "f012", "name": "工具函数 (cn, formatTime, formatDuration, generateId)", "passes": true },
+        { "id": "f013", "name": "Zustand taskStore", "passes": true },
+        { "id": "f014", "name": "Zustand agentStore", "passes": true },
+        { "id": "f015", "name": "Zustand activityStore", "passes": true },
+        { "id": "f016", "name": "Zustand uiStore", "passes": true },
+        { "id": "f017", "name": "Zustand historyStore", "passes": true },
+        { "id": "f018", "name": "种子数据 (mock-data.ts)", "passes": true },
+        { "id": "f019", "name": "MockSimulator 类", "passes": true },
+        { "id": "f020", "name": "useSimulator hook", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-2",
+      "name": "Layout + 路由",
+      "status": "done",
+      "features": [
+        { "id": "f030", "name": "Sidebar 导航组件", "passes": true },
+        { "id": "f031", "name": "AppLayout 主布局", "passes": true },
+        { "id": "f032", "name": "React Router 配置 (4 routes)", "passes": true },
+        { "id": "f033", "name": "main.tsx 入口更新", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-3",
+      "name": "共享组件",
+      "status": "done",
+      "features": [
+        { "id": "f040", "name": "StatusBadge", "passes": true },
+        { "id": "f041", "name": "PriorityBadge", "passes": true },
+        { "id": "f042", "name": "ProgressBar", "passes": true },
+        { "id": "f043", "name": "PageHeader", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-4",
+      "name": "Dashboard 页面",
+      "status": "done",
+      "features": [
+        { "id": "f050", "name": "StatusCards (4 个统计卡片)", "passes": true },
+        { "id": "f051", "name": "MainAgentCard", "passes": true },
+        { "id": "f052", "name": "QueueOverview", "passes": true },
+        { "id": "f053", "name": "ActiveTasksTable", "passes": true },
+        { "id": "f054", "name": "LiveFeed (实时活动流)", "passes": true },
+        { "id": "f055", "name": "DashboardPage 组装", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-5",
+      "name": "Queue 页面",
+      "status": "done",
+      "features": [
+        { "id": "f060", "name": "KanbanBoard 三列布局", "passes": true },
+        { "id": "f061", "name": "KanbanColumn", "passes": true },
+        { "id": "f062", "name": "TaskCard (可拖拽)", "passes": true },
+        { "id": "f063", "name": "@dnd-kit 排序逻辑", "passes": true },
+        { "id": "f064", "name": "右键菜单 (暂停/取消/插队)", "passes": false },
+        { "id": "f065", "name": "QueuePage 组装", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-6",
+      "name": "Agents 页面",
+      "status": "done",
+      "features": [
+        { "id": "f070", "name": "MainAgentPanel + DecisionLog", "passes": true },
+        { "id": "f071", "name": "SubAgentGrid + SubAgentCard", "passes": true },
+        { "id": "f072", "name": "AgentsPage 组装", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-7",
+      "name": "History 页面",
+      "status": "done",
+      "features": [
+        { "id": "f080", "name": "StatsBar (统计摘要)", "passes": true },
+        { "id": "f081", "name": "HistoryFilters (时间/类型/状态)", "passes": true },
+        { "id": "f082", "name": "HistoryTable", "passes": true },
+        { "id": "f083", "name": "HistoryPage 组装", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-8",
+      "name": "覆盖层组件",
+      "status": "done",
+      "features": [
+        { "id": "f090", "name": "TaskDrawer (右侧任务详情抽屉)", "passes": true },
+        { "id": "f091", "name": "NewTaskModal (新建任务弹窗)", "passes": true },
+        { "id": "f092", "name": "ChatPanel (主 Agent 对话面板)", "passes": true },
+        { "id": "f093", "name": "NotificationBell + Dropdown", "passes": true }
+      ]
+    },
+    {
+      "id": "phase-9",
+      "name": "Mock Simulator 接入",
+      "status": "not_started",
+      "features": [
+        { "id": "f100", "name": "Simulator 接入全部 store", "passes": false },
+        { "id": "f101", "name": "实时数据流端到端验证", "passes": false }
+      ]
+    },
+    {
+      "id": "phase-10",
+      "name": "收尾打磨",
+      "status": "in_progress",
+      "features": [
+        { "id": "f110", "name": "过渡动画效果", "passes": false },
+        { "id": "f111", "name": "键盘快捷键 (N=新建, ESC=关闭)", "passes": true },
+        { "id": "f112", "name": "清理 Vite 模板残留文件", "passes": true },
+        { "id": "f113", "name": "Vitest 测试框架配置", "passes": true },
+        { "id": "f114", "name": "核心 store 单元测试", "passes": true }
+      ]
+    }
+  ],
+  "summary": {
+    "total": 42,
+    "done": 38,
+    "remaining": 4,
+    "progress_pct": 90.5
+  }
+}
