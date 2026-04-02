@@ -41,10 +41,19 @@ function getMenuItems(
     onClose()
   }
 
-  // Helper: execute live API or mock store action
+  // Helper: execute live API or mock store action, fallback to store on API failure
   const liveOrMock = (apiFn: () => Promise<unknown>, mockFn: () => void): (() => Promise<void>) =>
     wrap(async () => {
-      if (isLive) { await apiFn() } else { mockFn() }
+      if (isLive) {
+        try {
+          await apiFn()
+        } catch (err) {
+          console.error('API call failed, falling back to local store:', err)
+          mockFn()
+        }
+      } else {
+        mockFn()
+      }
     })
 
   if (status === 'blocked') {
