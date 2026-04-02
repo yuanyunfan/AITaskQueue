@@ -17,14 +17,14 @@ class Settings(BaseSettings):
     task_timeout_seconds: int = 600
     orchestrator_poll_interval: float = 5.0
 
-    # Claude Agent SDK
-    # These inherit from shell env if not overridden.
-    # The SDK spawns Claude Code CLI as a subprocess,
-    # which reads ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY itself.
+    # Claude CLI subprocess configuration.
+    # The CLI reads ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY from shell env.
+    claude_cli_path: str = "claude"  # path to claude binary
     claude_model: str = ""  # empty = use CLI default
     claude_max_turns: int = 25
     claude_permission_mode: str = "acceptEdits"
     claude_working_dir: str = ""  # project dir for agent to work in
+    claude_max_budget_usd: float = 0.0  # 0 = no per-task budget limit
 
     model_config = {"env_file": "../.env", "env_prefix": "AITASK_", "extra": "ignore"}
 

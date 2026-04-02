@@ -1,7 +1,7 @@
 # AITaskQueue — Progress Log
 # 每次 Claude Code session 结束时更新此文件，下次 session 开始时读取以恢复上下文。
 
-## Current Status: WebSocket + 前端接入完成 — backend/websocket-integration 分支
+## Current Status: CLI 子进程引擎完成 — claude_agent_sdk 已替换为 Claude CLI subprocess
 
 ## Completed ✅
 
@@ -104,6 +104,26 @@
 - [x] use-backend.ts mode 切换 hook ✅ (之前已完成)
 - [x] Vite proxy /api + /ws 配置 ✅ (之前已完成)
 
+### CLI Subprocess Engine (2026-04-02) — backend/orchestrator 分支
+- [x] ClaudeCodeRunner (subprocess_runner.py) — asyncio.create_subprocess_exec 管理 Claude CLI 子进程
+  - spawn_streaming() — stream-json 模式，background reader + asyncio.Queue，支持 break/cancel 安全清理
+  - run_once() — json 模式，单次调用用于 chat
+  - kill_process() — SIGTERM → 5s → SIGKILL
+  - kill_all() — shutdown 时清理所有子进程
+  - is_timed_out() / estimate_progress() / get_pid() — 进程监控
+- [x] PriorityScheduler (scheduler.py) — P0>P1>P2>P3, FIFO within same priority, skip human queue
+- [x] OrchestratorEngine (engine.py) — 重写使用 ClaudeCodeRunner
+  - _tick() 三阶段: 超时检查 → scheduler 选任务 → dispatch
+  - PID tracking 存入 Task.subprocess_pid + SubAgent.pid
+  - start() 中恢复残留 RUNNING 任务 → QUEUED
+  - 队列策略: auto→done, semi→review+notification, human→done
+  - 失败重试: retry_count < max_retries → re-queue
+- [x] config.py — 新增 claude_cli_path, claude_max_budget_usd
+- [x] chat.py — _query_claude() 改用 ClaudeCodeRunner.run_once()
+- [x] claude_service.py — 改为 re-export shim (backward compat)
+- [x] pyproject.toml — 移除 claude-agent-sdk 依赖
+- [x] orchestrator/__init__.py — 导出新模块
+
 ## Verification
 - `pnpm build` ✅ (tsc + vite build, 0 errors)
 - `pnpm test` ✅ (43 tests passing)
@@ -130,12 +150,16 @@ VITE_BACKEND_MODE=live pnpm dev
 ```
 
 ## Architecture Notes
-- Agent SDK spawns Claude Code CLI as subprocess — inherits ANTHROPIC_BASE_URL (LiteLLM proxy) from shell env
-- Orchestrator replaces MockSimulator's 5 setInterval loops with real Claude execution
-- Three queue types: auto→done, semi→review (wait for approval), human→done
+- ClaudeCodeRunner uses asyncio.create_subprocess_exec to spawn Claude CLI (not claude_agent_sdk)
+- stream-json mode for tasks (real-time progress), json mode for chat (single-turn)
+- --bare flag on task subprocesses (skip hooks/LSP/MCP for faster headless execution)
+- Queue + background reader task pattern for clean async generator teardown
+- PriorityScheduler is stateless (pure function: list in → list out)
+- Orchestrator.start() resets stale RUNNING tasks to QUEUED on restart
+- Three queue types: auto→done, semi→review (wait for approval), human→done (manual dispatch only)
 - Frontend in 'live' mode is purely driven by WebSocket (backend is source of truth)
 - Frontend in 'mock' mode runs original MockSimulator (no backend needed)
-- Task runners execute in parallel asyncio tasks, each wrapping a Claude Agent SDK session
+- Task runners execute in parallel asyncio tasks, each consuming a CLI subprocess stream
 
 ## Not Started ⏳
 

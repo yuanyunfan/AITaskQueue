@@ -115,28 +115,19 @@ async def send_message(data: ChatMessageCreate, db: AsyncSession = Depends(get_d
 async def _query_claude(user_message: str, system_context: str) -> str:
     """
     Single-turn Claude query for chat responses.
-    Uses Agent SDK with no tools and max_turns=1 for fast conversational reply.
+    Uses CLI subprocess in json mode -- no tools, fast conversational reply.
     """
-    from claude_agent_sdk import query, ClaudeAgentOptions
+    from app.orchestrator.subprocess_runner import ClaudeCodeRunner
 
-    opts = ClaudeAgentOptions(
-        max_turns=1,
-        system_prompt=system_context,
-        allowed_tools=[],  # no tools — pure conversation
-    )
-
-    result_text = ""
-    async for message in query(prompt=user_message, options=opts):
-        msg_type = getattr(message, "type", None)
-        if msg_type == "assistant":
-            content = getattr(message, "message", None)
-            if content and hasattr(content, "content"):
-                for block in content.content:
-                    if hasattr(block, "text"):
-                        result_text += block.text
-        elif msg_type == "result":
-            result = getattr(message, "result", "")
-            if result and not result_text:
-                result_text = result
-
-    return result_text or "（Claude 未返回内容）"
+    runner = ClaudeCodeRunner()
+    try:
+        result_text, cost = await runner.run_once(
+            prompt=user_message,
+            system_prompt=system_context,
+            timeout_seconds=60,
+        )
+        logger.info("Chat query completed (cost=$%.4f)", cost)
+        return result_text or "\uff08Claude \u672a\u8fd4\u56de\u5185\u5bb9\uff09"
+    except RuntimeError as exc:
+        logger.error("Chat CLI query failed: %s", exc)
+        return f"\u62b1\u6b49\uff0cClaude \u54cd\u5e94\u51fa\u9519: {str(exc)[:200]}"
