@@ -24,3 +24,18 @@ export interface DecisionLogEntry {
   timestamp: number
   message: string
 }
+
+export type AgentLogEventType = 'tool_use' | 'text' | 'result' | 'error' | 'progress'
+
+export interface AgentLog {
+  id: string
+  agentId: string
+  taskId: string | null
+  eventType: AgentLogEventType
+  message: string
+  toolName: string | null
+  progressPct: number
+  costUsd: number | null
+  metadata: Record<string, unknown> | null
+  timestamp: number  // epoch ms
+}

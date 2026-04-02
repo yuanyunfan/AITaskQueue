@@ -5,11 +5,12 @@
  * taskStore.updateTask() so the UI reflects the change in real-time.
  */
 
-import type { Task, MainAgent, SubAgent, DecisionLogEntry, ActivityEvent, Notification, ChatMessage } from '@/types'
+import type { Task, MainAgent, SubAgent, DecisionLogEntry, ActivityEvent, Notification, ChatMessage, AgentLog } from '@/types'
 import type { HistoryEntry } from '@/stores/history-store'
 import type { WebSocketManager } from '@/lib/ws'
 import { useTaskStore } from '@/stores/task-store'
 import { useAgentStore } from '@/stores/agent-store'
+import { useAgentLogStore } from '@/stores/agent-log-store'
 import { useActivityStore } from '@/stores/activity-store'
 import { useHistoryStore } from '@/stores/history-store'
 import { useUIStore } from '@/stores/ui-store'
@@ -38,6 +39,7 @@ export function initStoreSync(ws: WebSocketManager): () => void {
       notifications?: Notification[]
       chatMessages?: ChatMessage[]
       decisions?: DecisionLogEntry[]
+      agentLogs?: AgentLog[]
     }
 
     // Bulk-load tasks
@@ -58,6 +60,11 @@ export function initStoreSync(ws: WebSocketManager): () => void {
     // Decisions
     if (data.decisions) {
       useAgentStore.setState({ decisionLog: data.decisions })
+    }
+
+    // Agent logs
+    if (data.agentLogs) {
+      useAgentLogStore.getState().setLogs(data.agentLogs)
     }
 
     // Activity events
@@ -133,6 +140,13 @@ export function initStoreSync(ws: WebSocketManager): () => void {
 
   on('agent:decision', (payload) => {
     useAgentStore.getState().addDecision(payload as unknown as DecisionLogEntry)
+  })
+
+  // ------------------------------------------------------------------
+  // Agent log events (real-time CLI output)
+  // ------------------------------------------------------------------
+  on('agent:log', (payload) => {
+    useAgentLogStore.getState().addLog(payload as unknown as AgentLog)
   })
 
   // ------------------------------------------------------------------

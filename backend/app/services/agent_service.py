@@ -5,6 +5,7 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.agent import MainAgentState, SubAgent, DecisionLogEntry
+from app.models.agent_log import AgentLog
 from app.models.enums import AgentStatus
 
 
@@ -111,4 +112,67 @@ class AgentService:
         result = await self.session.execute(
             select(DecisionLogEntry).order_by(desc(DecisionLogEntry.timestamp)).limit(limit)
         )
+        return list(result.scalars().all())
+
+    # ------------------------------------------------------------------
+    # Agent execution logs
+    # ------------------------------------------------------------------
+
+    async def add_log(
+        self,
+        agent_id: str,
+        task_id: str | None,
+        event_type: str,
+        message: str,
+        *,
+        tool_name: str | None = None,
+        progress_pct: int = 0,
+        cost_usd: float | None = None,
+        metadata_json: dict | None = None,
+    ) -> AgentLog:
+        """Persist a single AgentEvent as a log row."""
+        log = AgentLog(
+            id=str(uuid.uuid4())[:8],
+            agent_id=agent_id,
+            task_id=task_id,
+            event_type=event_type,
+            message=message,
+            tool_name=tool_name,
+            progress_pct=progress_pct,
+            cost_usd=cost_usd,
+            metadata_json=metadata_json,
+            timestamp=datetime.now(timezone.utc),
+        )
+        self.session.add(log)
+        await self.session.commit()
+        await self.session.refresh(log)
+        return log
+
+    async def get_logs(
+        self,
+        agent_id: str,
+        task_id: str | None = None,
+        limit: int = 200,
+    ) -> list[AgentLog]:
+        """Fetch logs for a sub-agent, optionally filtered by task."""
+        query = select(AgentLog).where(AgentLog.agent_id == agent_id)
+        if task_id:
+            query = query.where(AgentLog.task_id == task_id)
+        query = query.order_by(AgentLog.timestamp.asc()).limit(limit)
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
+
+    async def get_logs_by_task(
+        self,
+        task_id: str,
+        limit: int = 200,
+    ) -> list[AgentLog]:
+        """Fetch all logs for a specific task (across agents)."""
+        query = (
+            select(AgentLog)
+            .where(AgentLog.task_id == task_id)
+            .order_by(AgentLog.timestamp.asc())
+            .limit(limit)
+        )
+        result = await self.session.execute(query)
         return list(result.scalars().all())

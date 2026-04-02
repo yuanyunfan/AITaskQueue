@@ -10,6 +10,11 @@ interface UIState {
   chatMessages: ChatMessage[]
   theme: Theme
 
+  /** Agent log panel state */
+  isLogPanelOpen: boolean
+  logPanelAgentId: string | null
+  logPanelTaskId: string | null
+
   openDrawer: () => void
   closeDrawer: () => void
   openModal: () => void
@@ -18,6 +23,10 @@ interface UIState {
   addChatMessage: (message: ChatMessage) => void
   setTheme: (theme: Theme) => void
   toggleTheme: () => void
+
+  /** Open the agent log panel for a specific agent */
+  openLogPanel: (agentId: string, taskId?: string) => void
+  closeLogPanel: () => void
 }
 
 /** Apply dark/light class to <html> without transition (used on init) */
@@ -70,6 +79,9 @@ export const useUIStore = create<UIState>((set) => ({
   isChatOpen: false,
   chatMessages: [],
   theme: getInitialTheme(),
+  isLogPanelOpen: false,
+  logPanelAgentId: null,
+  logPanelTaskId: null,
 
   openDrawer: () => set({ isDrawerOpen: true }),
   closeDrawer: () => set({ isDrawerOpen: false }),
@@ -87,4 +99,9 @@ export const useUIStore = create<UIState>((set) => ({
     applyTheme(newTheme)
     return { theme: newTheme }
   }),
+
+  openLogPanel: (agentId, taskId) =>
+    set({ isLogPanelOpen: true, logPanelAgentId: agentId, logPanelTaskId: taskId ?? null }),
+  closeLogPanel: () =>
+    set({ isLogPanelOpen: false, logPanelAgentId: null, logPanelTaskId: null }),
 }))

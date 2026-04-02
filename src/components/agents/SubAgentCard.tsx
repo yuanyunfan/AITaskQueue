@@ -1,5 +1,7 @@
 import type { SubAgent } from '@/types'
 import { ProgressBar } from '@/components/shared/ProgressBar'
+import { useUIStore } from '@/stores/ui-store'
+import { stopAgent } from '@/lib/api'
 
 interface SubAgentCardProps {
   agent: SubAgent
@@ -7,6 +9,19 @@ interface SubAgentCardProps {
 
 export function SubAgentCard({ agent }: SubAgentCardProps) {
   const isActive = agent.status === 'active'
+  const openLogPanel = useUIStore((s) => s.openLogPanel)
+
+  const handleViewLogs = () => {
+    openLogPanel(agent.id, agent.currentTaskId)
+  }
+
+  const handleStop = async () => {
+    try {
+      await stopAgent(agent.id)
+    } catch (err) {
+      console.error('Failed to stop agent:', err)
+    }
+  }
 
   return (
     <div className="bg-bg-card rounded-xl border border-border-default p-4 hover:border-border-default/50 transition-colors">
@@ -22,7 +37,7 @@ export function SubAgentCard({ agent }: SubAgentCardProps) {
           </div>
         </div>
         {isActive && (
-          <button className="px-2 py-0.5 rounded text-xs bg-status-failed/20 text-status-failed hover:bg-status-failed/30 transition-colors">Stop</button>
+          <button onClick={handleStop} className="px-2 py-0.5 rounded text-xs bg-status-failed/20 text-status-failed hover:bg-status-failed/30 transition-colors">Stop</button>
         )}
       </div>
       <div className="space-y-2 text-sm">
@@ -43,7 +58,10 @@ export function SubAgentCard({ agent }: SubAgentCardProps) {
           <span>{isActive ? `运行 ${agent.runningMinutes}min` : `空闲 ${agent.runningMinutes}min`}</span>
         </div>
       </div>
-      <button className="w-full mt-3 px-2 py-1 rounded text-xs bg-bg-primary text-text-secondary hover:bg-bg-hover transition-colors">View Logs</button>
+      <button
+        onClick={handleViewLogs}
+        className="w-full mt-3 px-2 py-1 rounded text-xs transition-colors bg-bg-primary text-text-secondary hover:bg-bg-hover cursor-pointer"
+      >View Logs</button>
     </div>
   )
 }
