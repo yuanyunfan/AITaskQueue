@@ -41,3 +41,4 @@ class Task(Base):
     max_retries: Mapped[int] = mapped_column(Integer, default=3)
     error_message: Mapped[str | None] = mapped_column(Text)
     subprocess_pid: Mapped[int | None] = mapped_column(Integer)
+    last_activity_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

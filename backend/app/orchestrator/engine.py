@@ -79,6 +79,7 @@ class Orchestrator:
                     progress=0,
                     assigned_agent=None,
                     subprocess_pid=None,
+                    last_activity_at=None,
                 )
                 logger.info("Reset stale running task %s to queued", task.id)
 
@@ -142,7 +143,7 @@ class Orchestrator:
     async def _tick(self):
         """
         Single orchestration tick:
-        1. Check running tasks for timeouts
+        1. Check running tasks for timeouts and stale/orphaned state
         2. Pick queued tasks via scheduler
         3. Dispatch them
         """
@@ -150,13 +151,53 @@ class Orchestrator:
             task_svc = TaskService(session)
             agent_svc = AgentService(session)
 
-            # -- Phase 1: Timeout check --
+            # -- Phase 1a: Timeout check --
             running_tasks = await task_svc.get_by_status("running")
             for task in running_tasks:
                 if task.id and self._runner.is_timed_out(task.id):
                     logger.warning("Task %s timed out", task.id)
                     await self._runner.kill_process(task.id)
                     # The _run_agent coroutine will handle the failure
+
+            # -- Phase 1b: Stale / orphaned task recovery --
+            # Detect tasks marked RUNNING in DB but no longer tracked by runner
+            # (e.g. subprocess crashed without emitting an event)
+            active_ids = set(self._runner.active_task_ids)
+            stale_tasks = await task_svc.get_stale_tasks(
+                active_task_ids=active_ids,
+            )
+            for task in stale_tasks:
+                logger.warning(
+                    "Resetting stale task %s (%s) — orphaned=%s",
+                    task.id,
+                    task.title,
+                    task.id not in active_ids,
+                )
+                # Kill subprocess if it's somehow still tracked
+                if task.id in active_ids:
+                    await self._runner.kill_process(task.id)
+                reset = await task_svc.reset_stale_task(task.id)
+                if reset:
+                    # Free the agent if it was assigned
+                    if task.assigned_agent:
+                        await agent_svc.free_agent(task.assigned_agent)
+                        # Remove from agent_tasks tracking
+                        agent_task = self._agent_tasks.pop(task.assigned_agent, None)
+                        if agent_task:
+                            agent_task.cancel()
+                    await self._ws.broadcast(
+                        "task:updated",
+                        TaskResponse.from_model(reset).model_dump(),
+                    )
+                    await self._ws.broadcast(
+                        "activity:event",
+                        {
+                            "id": str(uuid.uuid4())[:8],
+                            "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
+                            "type": "info",
+                            "message": f'⚠️ "{task.title}" 长时间无响应，已自动重置',
+                        },
+                    )
 
             # -- Phase 2: Scheduler picks next tasks --
             queued = await task_svc.get_by_status("queued")
@@ -208,6 +249,7 @@ class Orchestrator:
         task.status = TaskStatus.RUNNING
         task.assigned_agent = agent.id
         task.started_at = now
+        task.last_activity_at = now
 
         # Update agent state
         agent.status = AgentStatus.ACTIVE
@@ -377,11 +419,14 @@ class Orchestrator:
         self, task_id: str, agent_id: str, progress: int, message: str,
     ):
         """Push a progress update to DB and WS."""
+        now = datetime.now(timezone.utc)
         async with self._session_factory() as session:
             task_svc = TaskService(session)
             agent_svc = AgentService(session)
 
-            task = await task_svc.update_fields(task_id, progress=progress)
+            task = await task_svc.update_fields(
+                task_id, progress=progress, last_activity_at=now,
+            )
             await agent_svc.update_sub_agent(agent_id, progress=progress)
 
             if task:
