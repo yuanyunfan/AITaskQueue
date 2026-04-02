@@ -7,6 +7,10 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { useTaskStore } from '@/stores/task-store'
 import { useUIStore } from '@/stores/ui-store'
+import { approveTask, rejectTask } from '@/lib/api'
+
+const BACKEND_MODE = import.meta.env.VITE_BACKEND_MODE || 'mock'
+const isLive = BACKEND_MODE === 'live'
 
 const PROJECT_COLORS: Record<string, { bg: string; text: string }> = {
   Finance: { bg: 'bg-green-500/20', text: 'text-green-400' },
@@ -89,11 +93,25 @@ export function TaskCard({ task }: TaskCardProps) {
           {isReview && (
             <div className="flex gap-2 mt-2">
               <button
-                onClick={(e) => { e.stopPropagation(); updateTask(task.id, { status: 'done', completedAt: Date.now() }) }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (isLive) {
+                    approveTask(task.id).catch(console.error)
+                  } else {
+                    updateTask(task.id, { status: 'done', completedAt: Date.now() })
+                  }
+                }}
                 className="flex-1 px-2 py-1 rounded text-xs bg-status-running/20 text-status-running hover:bg-status-running/30 transition-colors font-medium"
               >✓ 验收通过</button>
               <button
-                onClick={(e) => { e.stopPropagation(); updateTask(task.id, { status: 'running', progress: 0 }) }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (isLive) {
+                    rejectTask(task.id).catch(console.error)
+                  } else {
+                    updateTask(task.id, { status: 'running', progress: 0 })
+                  }
+                }}
                 className="flex-1 px-2 py-1 rounded text-xs bg-status-failed/20 text-status-failed hover:bg-status-failed/30 transition-colors font-medium"
               >✗ 打回</button>
             </div>
