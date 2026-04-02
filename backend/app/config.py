@@ -5,7 +5,7 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Database
-    database_url: str = "postgresql+asyncpg://aitask:aitask@localhost:5432/aitaskqueue"
+    database_url: str = ""  # Set via AITASK_DATABASE_URL env var (see .env.example)
 
     # App
     debug: bool = True

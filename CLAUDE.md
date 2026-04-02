@@ -4,21 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Git & GitHub 账号
 
-本项目使用**个人 GitHub 账号**，不是公司账号。
-
-| | 个人账号 (本项目) | 公司账号 |
-|--|--|--|
-| **GitHub 用户名** | `yuanyunfan` | `v-yunfanyuan_microsoft` |
-| **SSH Host 别名** | `github-personal` | `github.com` |
-| **SSH Key** | `~/.ssh/id_ed25519_personal` | `~/.ssh/id_ed25519` |
-| **触发词** | "个人/personal" | "公司/微软/microsoft" |
+本项目使用**个人 GitHub 账号**，不是公司账号。详见 `~/.claude/CLAUDE.md` 中的账号配置表。
 
 **推送命令**（已配置好 remote）：
 ```bash
-git push origin main   # remote 已设为 git@github-personal:yuanyunfan/AITaskQueue.git
+git push origin main
 ```
-
-**创建仓库**（如需用 API）：MCP GitHub server 的 token (`GITHUB_PERSONAL_ACCESS_TOKEN`) 对应的就是 `yuanyunfan` 个人账号，可直接用。
 
 ## Project Overview
 
