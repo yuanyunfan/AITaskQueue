@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -10,11 +10,36 @@ from app.ws.manager import ws_manager
 router = APIRouter()
 
 
+@router.get("/projects")
+async def list_projects(db: AsyncSession = Depends(get_db)):
+    """Get distinct project names."""
+    svc = TaskService(db)
+    return await svc.get_projects()
+
+
 @router.get("")
-async def list_tasks(db: AsyncSession = Depends(get_db)):
+async def list_tasks(project: str | None = Query(None), db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)
     tasks = await svc.list_all()
-    return [TaskResponse.from_model(t).model_dump() for t in tasks]
+    # Filter by project if specified
+    if project == "__none__":
+        tasks = [t for t in tasks if t.project is None]
+    elif project:
+        tasks = [t for t in tasks if t.project == project]
+    # Build parent→children map
+    parent_ids = {t.id for t in tasks if any(c.parent_id == t.id for c in tasks)}
+    children_map: dict[str, list] = {}
+    top_level = []
+    for t in tasks:
+        if t.parent_id:
+            children_map.setdefault(t.parent_id, []).append(t)
+        else:
+            top_level.append(t)
+    result = []
+    for t in top_level:
+        kids = children_map.get(t.id)
+        result.append(TaskResponse.from_model(t, children=kids).model_dump())
+    return result
 
 
 @router.get("/{task_id}")
@@ -23,7 +48,8 @@ async def get_task(task_id: str, db: AsyncSession = Depends(get_db)):
     task = await svc.get_by_id(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
-    return TaskResponse.from_model(task).model_dump()
+    children = await svc.get_children(task_id)
+    return TaskResponse.from_model(task, children=children if children else None).model_dump()
 
 
 @router.post("", status_code=201)
@@ -35,6 +61,8 @@ async def create_task(data: TaskCreate, db: AsyncSession = Depends(get_db)):
         queue_type=data.queue_type,
         priority=data.priority,
         estimated_minutes=data.estimated_minutes,
+        project=data.project,
+        parent_id=data.parent_id,
     )
     resp = TaskResponse.from_model(task).model_dump()
     await ws_manager.broadcast("task:created", resp)

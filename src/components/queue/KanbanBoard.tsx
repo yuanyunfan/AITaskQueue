@@ -7,19 +7,29 @@ import { KanbanColumn } from './KanbanColumn'
 
 const QUEUE_TYPES: QueueType[] = ['auto', 'semi', 'human']
 
-export function KanbanBoard() {
+interface KanbanBoardProps {
+  projectFilter: string | null
+}
+
+export function KanbanBoard({ projectFilter }: KanbanBoardProps) {
   const tasks = useTaskStore((s) => s.tasks)
   const reorderInQueue = useTaskStore((s) => s.reorderInQueue)
 
   const tasksByQueue = useMemo(() => {
-    const result: Record<QueueType, typeof tasks> = { auto: [], semi: [], human: [] }
-    for (const t of tasks) {
+    let filtered = tasks.filter(t => !t.parentId) // exclude subtasks from kanban
+    if (projectFilter === '__none__') {
+      filtered = filtered.filter(t => !t.project)
+    } else if (projectFilter) {
+      filtered = filtered.filter(t => t.project === projectFilter)
+    }
+    const result: Record<QueueType, typeof filtered> = { auto: [], semi: [], human: [] }
+    for (const t of filtered) {
       if (t.status !== 'done' && result[t.queueType]) {
         result[t.queueType].push(t)
       }
     }
     return result
-  }, [tasks])
+  }, [tasks, projectFilter])
 
   const handleDragEnd = useCallback((event: DragEndEvent) => {
     const { active, over } = event

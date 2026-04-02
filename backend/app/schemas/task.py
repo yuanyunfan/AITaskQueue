@@ -4,6 +4,8 @@ from pydantic import BaseModel, Field
 class TaskCreate(BaseModel):
     title: str
     description: str | None = None
+    project: str | None = None
+    parent_id: str | None = Field(alias="parentId", default=None)
     queue_type: str = Field(alias="queueType", default="auto")
     priority: str = "p2"
     estimated_minutes: int | None = Field(alias="estimatedMinutes", default=None)
@@ -14,6 +16,8 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    project: str | None = Field(default=None)
+    parent_id: str | None = Field(alias="parentId", default=None)
     priority: str | None = None
     queue_type: str | None = Field(alias="queueType", default=None)
 
@@ -32,6 +36,8 @@ class TaskResponse(BaseModel):
     id: str
     title: str
     description: str | None = None
+    project: str | None = None
+    parentId: str | None = None
     status: str
     queueType: str
     priority: str
@@ -42,13 +48,16 @@ class TaskResponse(BaseModel):
     completedAt: int | None = None
     estimatedMinutes: int | None = None
     result: str | None = None
+    children: list["TaskResponse"] | None = None  # populated for parent tasks
 
     @classmethod
-    def from_model(cls, task) -> "TaskResponse":
+    def from_model(cls, task, children: list | None = None) -> "TaskResponse":
         return cls(
             id=task.id,
             title=task.title,
             description=task.description,
+            project=task.project,
+            parentId=task.parent_id,
             status=task.status.value if hasattr(task.status, 'value') else task.status,
             queueType=task.queue_type.value if hasattr(task.queue_type, 'value') else task.queue_type,
             priority=task.priority.value if hasattr(task.priority, 'value') else task.priority,
@@ -59,4 +68,5 @@ class TaskResponse(BaseModel):
             completedAt=int(task.completed_at.timestamp() * 1000) if task.completed_at else None,
             estimatedMinutes=task.estimated_minutes,
             result=task.result,
+            children=[TaskResponse.from_model(c) for c in children] if children else None,
         )

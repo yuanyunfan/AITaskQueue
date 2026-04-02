@@ -27,6 +27,18 @@ class TaskService:
         )
         return list(result.scalars().all())
 
+    async def get_children(self, parent_id: str) -> list[Task]:
+        result = await self.session.execute(
+            select(Task).where(Task.parent_id == parent_id).order_by(Task.sort_order, Task.created_at)
+        )
+        return list(result.scalars().all())
+
+    async def get_projects(self) -> list[str]:
+        result = await self.session.execute(
+            select(Task.project).where(Task.project.isnot(None)).distinct().order_by(Task.project)
+        )
+        return [r[0] for r in result.all()]
+
     async def get_by_id(self, task_id: str) -> Task | None:
         result = await self.session.execute(select(Task).where(Task.id == task_id))
         return result.scalar_one_or_none()
@@ -37,11 +49,13 @@ class TaskService:
         )
         return list(result.scalars().all())
 
-    async def create(self, title: str, description: str | None, queue_type: str, priority: str, estimated_minutes: int | None = None) -> Task:
+    async def create(self, title: str, description: str | None, queue_type: str, priority: str, estimated_minutes: int | None = None, project: str | None = None, parent_id: str | None = None) -> Task:
         task = Task(
             id=str(uuid.uuid4())[:8],
             title=title,
             description=description,
+            project=project,
+            parent_id=parent_id,
             status=TaskStatus.QUEUED,
             queue_type=QueueType(queue_type),
             priority=Priority(priority),

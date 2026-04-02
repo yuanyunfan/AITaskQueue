@@ -6,6 +6,8 @@ export interface Task {
   id: string
   title: string
   description?: string
+  project?: string | null
+  parentId?: string | null
   status: TaskStatus
   queueType: QueueType
   priority: Priority
@@ -16,4 +18,5 @@ export interface Task {
   completedAt?: number
   estimatedMinutes?: number
   result?: string
+  children?: Task[] | null
 }

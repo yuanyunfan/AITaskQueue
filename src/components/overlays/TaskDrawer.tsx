@@ -11,6 +11,16 @@ import { formatTime } from '@/lib/utils'
 import { approveTask, rejectTask, pauseTask, resumeTask, deleteTask, updateTask as apiUpdateTask } from '@/lib/api'
 import type { Priority, QueueType } from '@/types'
 
+const PROJECT_COLORS: Record<string, { bg: string; text: string }> = {
+  Finance: { bg: 'bg-green-500/20', text: 'text-green-400' },
+  AITaskQueue: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+  VibeLancer: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+  TrendingViz: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  Raven: { bg: 'bg-red-500/20', text: 'text-red-400' },
+  StickiesSync: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
+  MacTimer: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+}
+
 const BACKEND_MODE = import.meta.env.VITE_BACKEND_MODE || 'mock'
 
 export function TaskDrawer() {
@@ -222,10 +232,36 @@ export function TaskDrawer() {
                     <span className={`text-sm ${QUEUE_COLORS[task.queueType]}`}>{QUEUE_LABELS[task.queueType]}</span>
                   </div>
                   <div>
-                    <span className="text-text-muted text-xs block mb-1">分配 Agent</span>
-                    <span className="text-sm">{task.assignedAgent || '未分配'}</span>
+                    <span className="text-text-muted text-xs block mb-1">所属项目</span>
+                    {task.project ? (
+                      <span className={`text-xs px-1.5 py-0.5 rounded ${PROJECT_COLORS[task.project]?.bg || 'bg-gray-500/20'} ${PROJECT_COLORS[task.project]?.text || 'text-gray-400'}`}>
+                        {task.project}
+                      </span>
+                    ) : (
+                      <span className="text-sm text-text-muted">独立任务</span>
+                    )}
                   </div>
                 </div>
+
+                {/* Subtasks */}
+                {task.children && task.children.length > 0 && (
+                  <div>
+                    <span className="text-text-muted text-xs block mb-2">
+                      子任务 ({task.children.filter(c => c.status === 'done').length}/{task.children.length})
+                    </span>
+                    <div className="bg-bg-primary rounded-lg p-3 space-y-2">
+                      {task.children.map((child) => (
+                        <div key={child.id} className="flex items-center gap-2">
+                          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${child.status === 'done' ? 'bg-status-done' : 'bg-status-queued'}`} />
+                          <span className={`text-sm flex-1 ${child.status === 'done' ? 'text-text-muted line-through' : 'text-text-primary'}`}>
+                            {child.title}
+                          </span>
+                          <StatusBadge status={child.status} showDot={false} className="text-[10px]" />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 {task.status === 'running' && (
                   <div>

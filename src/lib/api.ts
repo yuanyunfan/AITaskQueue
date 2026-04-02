@@ -26,6 +26,8 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 export interface TaskCreateDTO {
   title: string
   description?: string
+  project?: string
+  parentId?: string
   queueType: string
   priority: string
   estimatedMinutes?: number

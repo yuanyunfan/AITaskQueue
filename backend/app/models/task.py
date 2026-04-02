@@ -13,6 +13,8 @@ class Task(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     title: Mapped[str] = mapped_column(String(200), nullable=False)
     description: Mapped[str | None] = mapped_column(Text)
+    project: Mapped[str | None] = mapped_column(String(100), index=True)
+    parent_id: Mapped[str | None] = mapped_column(String(36), index=True)
     status: Mapped[TaskStatus] = mapped_column(
         Enum(TaskStatus), default=TaskStatus.QUEUED, index=True
     )

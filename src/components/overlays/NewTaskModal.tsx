@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { X, Loader2 } from 'lucide-react'
 import { useUIStore } from '@/stores/ui-store'
 import { useTaskStore } from '@/stores/task-store'
@@ -23,11 +23,24 @@ export function NewTaskModal() {
   const [queueType, setQueueType] = useState<QueueType>('auto')
   const [priority, setPriority] = useState<Priority>('p2')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [project, setProject] = useState<string>('')
+  const [parentId, setParentId] = useState<string>('')
+  const [newProjectName, setNewProjectName] = useState('')
+
+  const allTasks = useTaskStore((s) => s.tasks)
+  const projects = useMemo(() => {
+    const set = new Set<string>()
+    allTasks.forEach(t => { if (t.project) set.add(t.project) })
+    return Array.from(set).sort()
+  }, [allTasks])
+  const topLevelTasks = useMemo(() => allTasks.filter(t => !t.parentId && t.status !== 'done'), [allTasks])
 
   if (!isOpen) return null
 
   const handleSubmit = async () => {
     if (!title.trim() || isSubmitting) return
+
+    const finalProject = project === '_new' ? newProjectName.trim() || undefined : project || undefined
 
     if (BACKEND_MODE === 'live') {
       setIsSubmitting(true)
@@ -35,6 +48,8 @@ export function NewTaskModal() {
         await createTask({
           title: title.trim(),
           description: description.trim() || undefined,
+          project: finalProject,
+          parentId: parentId || undefined,
           queueType,
           priority,
         })
@@ -42,6 +57,9 @@ export function NewTaskModal() {
         setDescription('')
         setQueueType('auto')
         setPriority('p2')
+        setProject('')
+        setParentId('')
+        setNewProjectName('')
         closeModal()
       } catch (err) {
         console.error('Failed to create task:', err)
@@ -54,6 +72,8 @@ export function NewTaskModal() {
         id,
         title: title.trim(),
         description: description.trim() || undefined,
+        project: finalProject,
+        parentId: parentId || undefined,
         status: 'queued',
         queueType,
         priority,
@@ -75,6 +95,9 @@ export function NewTaskModal() {
       setDescription('')
       setQueueType('auto')
       setPriority('p2')
+      setProject('')
+      setParentId('')
+      setNewProjectName('')
       closeModal()
     }
   }
@@ -124,6 +147,47 @@ export function NewTaskModal() {
                 className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent resize-none h-20 placeholder:text-text-muted"
                 placeholder="可选：补充任务的详细说明..."
               />
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm text-text-secondary mb-1.5">所属项目</label>
+                <select
+                  value={project}
+                  onChange={(e) => {
+                    if (e.target.value === '_new') {
+                      setProject('_new')
+                    } else {
+                      setProject(e.target.value)
+                    }
+                  }}
+                  className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent"
+                >
+                  <option value="">无（独立任务）</option>
+                  {projects.map(p => <option key={p} value={p}>{p}</option>)}
+                  <option value="_new">+ 新建项目...</option>
+                </select>
+                {project === '_new' && (
+                  <input
+                    type="text"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    placeholder="项目名称..."
+                    className="w-full mt-2 bg-bg-primary border border-border-default rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
+                  />
+                )}
+              </div>
+              <div>
+                <label className="block text-sm text-text-secondary mb-1.5">父任务</label>
+                <select
+                  value={parentId}
+                  onChange={(e) => setParentId(e.target.value)}
+                  className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent"
+                >
+                  <option value="">无（顶级任务）</option>
+                  {topLevelTasks.map(t => <option key={t.id} value={t.id}>{t.title}</option>)}
+                </select>
+              </div>
             </div>
 
             <div>

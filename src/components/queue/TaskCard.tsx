@@ -7,6 +7,16 @@ import { ProgressBar } from '@/components/shared/ProgressBar'
 import { useTaskStore } from '@/stores/task-store'
 import { useUIStore } from '@/stores/ui-store'
 
+const PROJECT_COLORS: Record<string, { bg: string; text: string }> = {
+  Finance: { bg: 'bg-green-500/20', text: 'text-green-400' },
+  AITaskQueue: { bg: 'bg-blue-500/20', text: 'text-blue-400' },
+  VibeLancer: { bg: 'bg-purple-500/20', text: 'text-purple-400' },
+  TrendingViz: { bg: 'bg-yellow-500/20', text: 'text-yellow-400' },
+  Raven: { bg: 'bg-red-500/20', text: 'text-red-400' },
+  StickiesSync: { bg: 'bg-cyan-500/20', text: 'text-cyan-400' },
+  MacTimer: { bg: 'bg-orange-500/20', text: 'text-orange-400' },
+}
+
 interface TaskCardProps {
   task: Task
 }
@@ -45,6 +55,20 @@ export function TaskCard({ task }: TaskCardProps) {
         <StatusBadge status={task.status} />
       </div>
       <p className="text-sm font-medium mb-2">{task.title}</p>
+
+      {/* Project tag + subtask count */}
+      <div className="flex items-center gap-2 mb-1">
+        {task.project && (
+          <span className={`text-[10px] px-1.5 py-0.5 rounded ${PROJECT_COLORS[task.project]?.bg || 'bg-gray-500/20'} ${PROJECT_COLORS[task.project]?.text || 'text-gray-400'}`}>
+            {task.project}
+          </span>
+        )}
+        {task.children && task.children.length > 0 && (
+          <span className="text-[10px] text-text-muted">
+            📋 {task.children.filter(c => c.status === 'done').length}/{task.children.length}
+          </span>
+        )}
+      </div>
 
       {task.status === 'running' && (
         <ProgressBar value={task.progress} className="mb-2" />

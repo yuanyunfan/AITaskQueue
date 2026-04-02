@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AITaskQueue - Project & Subtask Demo</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwindcss.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            bg: { primary: '#0F172A', card: '#1E293B', hover: '#273548' },
+            border: { default: '#334155' },
+            text: { primary: '#F1F5F9', secondary: '#94A3B8', muted: '#64748B' },
+            status: { running: '#22C55E', queued: '#F59E0B', failed: '#EF4444', paused: '#6B7280', done: '#06B6D4', review: '#A855F7' },
+            priority: { p0: '#EF4444', p1: '#F97316', p2: '#F59E0B', p3: '#3B82F6' },
+            queue: { auto: '#EF4444', semi: '#F59E0B', human: '#3B82F6' },
+            accent: '#3B82F6',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Inter', 'Segoe UI', sans-serif; margin: 0; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: #1E293B; }
+    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+    .task-card { transition: all 0.2s ease; }
+    .task-card:hover { background: #273548; transform: translateY(-1px); }
+    @keyframes pulse-dot { 0%,100%{opacity:1} 50%{opacity:0.5} }
+    .animate-pulse-dot { animation: pulse-dot 2s infinite; }
+    @keyframes slide-up { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+    .animate-slide-up { animation: slide-up 0.2s ease-out; }
+    @keyframes slide-right { from{transform:translateX(100%)} to{transform:translateX(0)} }
+    .animate-slide-right { animation: slide-right 0.25s ease-out; }
+    .subtask-list { max-height: 0; overflow: hidden; transition: max-height 0.3s ease; }
+    .subtask-list.open { max-height: 500px; }
+    .project-tag { font-size: 10px; padding: 1px 6px; border-radius: 4px; }
+  </style>
+</head>
+<body class="bg-bg-primary text-text-primary min-h-screen flex">
+
+  <!-- Sidebar -->
+  <aside class="w-14 bg-bg-card border-r border-border-default flex flex-col items-center py-4 shrink-0 fixed h-full z-10">
+    <div class="w-8 h-8 rounded-lg bg-accent flex items-center justify-center mb-8 text-sm font-bold">AI</div>
+    <nav class="flex flex-col gap-1 flex-1">
+      <button class="w-10 h-10 rounded-lg flex items-center justify-center bg-bg-hover text-text-primary border-l-2 border-accent" title="Queue">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/></svg>
+      </button>
+    </nav>
+  </aside>
+
+  <!-- Main -->
+  <main class="flex-1 ml-14 overflow-auto p-6">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="text-xl font-semibold">Task Queue</h1>
+      <button onclick="openModal()" class="px-3 py-1.5 bg-accent hover:bg-blue-600 rounded-lg text-sm font-medium transition-colors">+ New Task</button>
+    </div>
+
+    <!-- Project Filter Tabs -->
+    <div class="flex items-center gap-2 mb-5 overflow-x-auto pb-1">
+      <button onclick="filterProject('all')" class="filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-white" data-project="all">全部 <span class="text-xs opacity-70">(41)</span></button>
+      <button onclick="filterProject('Finance')" class="filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-card text-text-secondary border border-border-default hover:bg-bg-hover" data-project="Finance">
+        <span class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>Finance <span class="text-xs opacity-70">(8)</span>
+      </button>
+      <button onclick="filterProject('AITaskQueue')" class="filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-card text-text-secondary border border-border-default hover:bg-bg-hover" data-project="AITaskQueue">
+        <span class="inline-block w-2 h-2 rounded-full bg-blue-500 mr-1"></span>AITaskQueue <span class="text-xs opacity-70">(2)</span>
+      </button>
+      <button onclick="filterProject('VibeLancer')" class="filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-card text-text-secondary border border-border-default hover:bg-bg-hover" data-project="VibeLancer">
+        <span class="inline-block w-2 h-2 rounded-full bg-purple-500 mr-1"></span>VibeLancer <span class="text-xs opacity-70">(1)</span>
+      </button>
+      <button onclick="filterProject('TrendingViz')" class="filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-card text-text-secondary border border-border-default hover:bg-bg-hover" data-project="TrendingViz">
+        <span class="inline-block w-2 h-2 rounded-full bg-yellow-500 mr-1"></span>TrendingViz <span class="text-xs opacity-70">(1)</span>
+      </button>
+      <button onclick="filterProject(null)" class="filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-card text-text-secondary border border-border-default hover:bg-bg-hover" data-project="none">
+        <span class="inline-block w-2 h-2 rounded-full bg-gray-500 mr-1"></span>独立任务 <span class="text-xs opacity-70">(29)</span>
+      </button>
+    </div>
+
+    <!-- Three Column Kanban -->
+    <div class="grid grid-cols-3 gap-4">
+
+      <!-- Column: 全自动 -->
+      <div>
+        <div class="flex items-center gap-2 mb-3 px-1">
+          <span class="w-2.5 h-2.5 rounded-full bg-queue-auto"></span>
+          <h3 class="font-medium text-sm">全自动</h3>
+          <span class="text-text-muted text-xs bg-bg-card px-1.5 py-0.5 rounded-full">2</span>
+        </div>
+        <div class="space-y-2">
+          <!-- Auto task with project tag -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer" onclick="openDrawer('fin-06')">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p2/20 text-priority-p2">P2</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">接入 arXiv 论文追踪</p>
+            <div class="flex items-center gap-2">
+              <span class="project-tag bg-green-500/20 text-green-400">Finance</span>
+            </div>
+          </div>
+
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p2/20 text-priority-p2">P2</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">接入 Google Trends</p>
+            <div class="flex items-center gap-2">
+              <span class="project-tag bg-green-500/20 text-green-400">Finance</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column: 半自动 -->
+      <div>
+        <div class="flex items-center gap-2 mb-3 px-1">
+          <span class="w-2.5 h-2.5 rounded-full bg-queue-semi"></span>
+          <h3 class="font-medium text-sm">半自动</h3>
+          <span class="text-text-muted text-xs bg-bg-card px-1.5 py-0.5 rounded-full">18</span>
+        </div>
+        <div class="space-y-2">
+          <!-- P0 -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p0/20 text-priority-p0">P0</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">学习 Claude Code 最佳实践</p>
+          </div>
+
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p0/20 text-priority-p0">P0</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">实践：中国地图天气网页</p>
+          </div>
+
+          <!-- P1 with project -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p1/20 text-priority-p1">P1</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">量化策略辅助判断</p>
+            <span class="project-tag bg-green-500/20 text-green-400">Finance</span>
+          </div>
+
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p1/20 text-priority-p1">P1</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">Docker + 测试</p>
+            <span class="project-tag bg-blue-500/20 text-blue-400">AITaskQueue</span>
+          </div>
+
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p1/20 text-priority-p1">P1</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">多 Agent 并行开发</p>
+          </div>
+
+          <p class="text-text-muted text-xs text-center py-2">+ 13 more tasks...</p>
+        </div>
+      </div>
+
+      <!-- Column: 人在loop -->
+      <div>
+        <div class="flex items-center gap-2 mb-3 px-1">
+          <span class="w-2.5 h-2.5 rounded-full bg-queue-human"></span>
+          <h3 class="font-medium text-sm">人在 loop</h3>
+          <span class="text-text-muted text-xs bg-bg-card px-1.5 py-0.5 rounded-full">21</span>
+        </div>
+        <div class="space-y-2">
+          <!-- P0 -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p0/20 text-priority-p0">P0</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">Claude Code 全自动化方案</p>
+          </div>
+
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p0/20 text-priority-p0">P0</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">Agent 自主持续完成任务</p>
+          </div>
+
+          <!-- Task with subtasks -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer" onclick="toggleSubtasks('lt-02')">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p2/20 text-priority-p2">P2</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium">深度学习系统学习</p>
+              <span class="text-text-muted text-xs flex items-center gap-1">
+                <svg class="w-3 h-3 transition-transform" id="chevron-lt-02" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                <span>4</span>
+              </span>
+            </div>
+            <!-- Subtask list -->
+            <div id="subtasks-lt-02" class="subtask-list mt-2">
+              <div class="border-t border-border-default pt-2 space-y-1.5">
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded border-border-default bg-bg-primary accent-accent w-3.5 h-3.5">
+                  <span>Sgg 深度学习</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded border-border-default bg-bg-primary accent-accent w-3.5 h-3.5">
+                  <span>PyTorch深度学习，小土堆</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded border-border-default bg-bg-primary accent-accent w-3.5 h-3.5">
+                  <span>吴恩达视频</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded border-border-default bg-bg-primary accent-accent w-3.5 h-3.5">
+                  <span>3blue1brown</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Another task with subtasks -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer" onclick="toggleSubtasks('lt-03')">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p2/20 text-priority-p2">P2</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <div class="flex items-center justify-between">
+              <p class="text-sm font-medium">数据开发进阶</p>
+              <span class="text-text-muted text-xs flex items-center gap-1">
+                <svg class="w-3 h-3 transition-transform" id="chevron-lt-03" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                <span>3</span>
+              </span>
+            </div>
+            <div id="subtasks-lt-03" class="subtask-list mt-2">
+              <div class="border-t border-border-default pt-2 space-y-1.5">
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded accent-accent w-3.5 h-3.5">
+                  <span>小红书面经 + Boss 直聘 JD 分析</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded accent-accent w-3.5 h-3.5">
+                  <span>Spark UI/explain/优化</span>
+                </label>
+                <label class="flex items-center gap-2 text-xs text-text-secondary hover:text-text-primary cursor-pointer py-0.5">
+                  <input type="checkbox" class="rounded accent-accent w-3.5 h-3.5">
+                  <span>Spark 源码阅读</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Regular tasks -->
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p1/20 text-priority-p1">P1</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">Agent Orchestration 学习</p>
+          </div>
+
+          <div class="task-card bg-bg-card rounded-lg p-3.5 border border-border-default cursor-pointer">
+            <div class="flex items-center justify-between mb-2">
+              <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p2/20 text-priority-p2">P2</span>
+              <span class="flex items-center gap-1 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+            </div>
+            <p class="text-sm font-medium mb-1.5">热点追踪与需求发现</p>
+            <span class="project-tag bg-green-500/20 text-green-400">Finance</span>
+          </div>
+
+          <p class="text-text-muted text-xs text-center py-2">+ 14 more tasks...</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Task Drawer (Right Panel) -->
+  <div id="drawer-overlay" class="fixed inset-0 bg-black/40 z-40 hidden" onclick="closeDrawer()"></div>
+  <div id="drawer" class="fixed right-0 top-0 h-full w-[420px] bg-bg-card border-l border-border-default z-50 overflow-y-auto translate-x-full transition-transform duration-200">
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-6">
+        <h2 class="text-lg font-semibold">任务详情</h2>
+        <div class="flex items-center gap-1">
+          <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"/></svg>
+          </button>
+          <button class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-status-failed hover:bg-status-failed/10">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+          </button>
+          <button onclick="closeDrawer()" class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <div class="space-y-5">
+        <div>
+          <h3 class="text-base font-medium mb-1">接入 arXiv 论文追踪</h3>
+          <p class="text-text-secondary text-sm">arXiv 每天更新，用 OAI 接口批量获取论文元数据+摘要，追踪 AI/ML 领域技术演化</p>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <span class="text-text-muted text-xs block mb-1">状态</span>
+            <span class="flex items-center gap-1.5 text-xs text-status-queued"><span class="w-1.5 h-1.5 rounded-full bg-status-queued"></span>Queued</span>
+          </div>
+          <div>
+            <span class="text-text-muted text-xs block mb-1">优先级</span>
+            <span class="px-1.5 py-0.5 rounded text-[10px] font-medium bg-priority-p2/20 text-priority-p2">P2</span>
+          </div>
+          <div>
+            <span class="text-text-muted text-xs block mb-1">队列类型</span>
+            <span class="text-sm text-queue-auto">全自动</span>
+          </div>
+          <div>
+            <span class="text-text-muted text-xs block mb-1">所属项目</span>
+            <span class="project-tag bg-green-500/20 text-green-400 text-xs">Finance</span>
+          </div>
+        </div>
+
+        <!-- Subtasks section in drawer -->
+        <div>
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-text-muted text-xs">子任务</span>
+            <span class="text-text-muted text-xs">暂无</span>
+          </div>
+        </div>
+
+        <div class="space-y-2 text-sm">
+          <div class="flex justify-between text-text-secondary">
+            <span>创建时间</span><span class="text-text-primary">18:25</span>
+          </div>
+          <div class="flex justify-between text-text-secondary">
+            <span>分配 Agent</span><span class="text-text-primary">未分配</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- New Task Modal -->
+  <div id="modal-overlay" class="fixed inset-0 bg-black/60 z-50 flex items-center justify-center hidden">
+    <div class="bg-bg-card rounded-2xl border border-border-default w-[560px] p-6 animate-slide-up" onclick="event.stopPropagation()">
+      <div class="flex items-center justify-between mb-5">
+        <h2 class="text-lg font-semibold">New Task</h2>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M6 18L18 6M6 6l12 12"/></svg>
+        </button>
+      </div>
+
+      <div class="space-y-4">
+        <div>
+          <label class="block text-sm text-text-secondary mb-1.5">任务名称 <span class="text-status-failed">*</span></label>
+          <input type="text" class="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent placeholder:text-text-muted" placeholder="输入任务名称...">
+        </div>
+
+        <div>
+          <label class="block text-sm text-text-secondary mb-1.5">描述</label>
+          <textarea class="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent resize-none h-16 placeholder:text-text-muted" placeholder="可选：补充任务的详细说明..."></textarea>
+        </div>
+
+        <!-- NEW: Project selector -->
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm text-text-secondary mb-1.5">所属项目</label>
+            <select class="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent">
+              <option value="">无（独立任务）</option>
+              <option value="Finance">Finance</option>
+              <option value="AITaskQueue">AITaskQueue</option>
+              <option value="VibeLancer">VibeLancer</option>
+              <option value="TrendingViz">TrendingViz</option>
+              <option value="_new">+ 新建项目...</option>
+            </select>
+          </div>
+
+          <!-- NEW: Parent task selector -->
+          <div>
+            <label class="block text-sm text-text-secondary mb-1.5">父任务</label>
+            <select class="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent">
+              <option value="">无（顶级任务）</option>
+              <option value="lt-02">深度学习系统学习</option>
+              <option value="lt-03">数据开发进阶</option>
+              <option value="lt-05">AI+Data 论文研读</option>
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm text-text-secondary mb-1.5">类型</label>
+          <div class="flex gap-2">
+            <button class="flex-1 px-3 py-2 rounded-lg border text-sm bg-queue-auto/20 border-queue-auto text-queue-auto">🔴 全自动</button>
+            <button class="flex-1 px-3 py-2 rounded-lg border text-sm bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover">🟡 半自动</button>
+            <button class="flex-1 px-3 py-2 rounded-lg border text-sm bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover">🔵 人在loop</button>
+          </div>
+        </div>
+
+        <div>
+          <label class="block text-sm text-text-secondary mb-1.5">优先级</label>
+          <div class="flex gap-2">
+            <button class="px-4 py-2 rounded-lg border text-sm bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover">P0 紧急</button>
+            <button class="px-4 py-2 rounded-lg border text-sm bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover">P1 高</button>
+            <button class="px-4 py-2 rounded-lg border text-sm bg-priority-p2/20 border-priority-p2 text-priority-p2">P2 中</button>
+            <button class="px-4 py-2 rounded-lg border text-sm bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover">P3 低</button>
+          </div>
+        </div>
+
+        <button class="w-full py-2 rounded-lg border border-dashed border-border-default text-text-muted text-sm hover:bg-bg-hover hover:text-text-secondary transition-colors">
+          🧠 让主 Agent 自动判断类型和优先级
+        </button>
+      </div>
+
+      <div class="flex justify-end gap-3 mt-6">
+        <button onclick="closeModal()" class="px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">Cancel</button>
+        <button class="px-4 py-2 rounded-lg text-sm bg-accent hover:bg-blue-600 font-medium transition-colors">Submit →</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Toggle subtasks
+    function toggleSubtasks(id) {
+      event.stopPropagation();
+      const el = document.getElementById('subtasks-' + id);
+      const chevron = document.getElementById('chevron-' + id);
+      el.classList.toggle('open');
+      chevron.style.transform = el.classList.contains('open') ? 'rotate(180deg)' : '';
+    }
+
+    // Project filter
+    function filterProject(project) {
+      document.querySelectorAll('.filter-tab').forEach(btn => {
+        const isActive = btn.dataset.project === (project === null ? 'none' : (project || 'all'));
+        btn.className = isActive
+          ? 'filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-accent text-white'
+          : 'filter-tab px-3 py-1.5 rounded-lg text-sm font-medium bg-bg-card text-text-secondary border border-border-default hover:bg-bg-hover';
+      });
+    }
+
+    // Drawer
+    function openDrawer(id) {
+      document.getElementById('drawer-overlay').classList.remove('hidden');
+      document.getElementById('drawer').style.transform = 'translateX(0)';
+    }
+    function closeDrawer() {
+      document.getElementById('drawer-overlay').classList.add('hidden');
+      document.getElementById('drawer').style.transform = 'translateX(100%)';
+    }
+
+    // Modal
+    function openModal() {
+      document.getElementById('modal-overlay').classList.remove('hidden');
+    }
+    function closeModal() {
+      document.getElementById('modal-overlay').classList.add('hidden');
+    }
+    document.getElementById('modal-overlay').addEventListener('click', function(e) {
+      if (e.target === this) closeModal();
+    });
+
+    // Keyboard
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') { closeModal(); closeDrawer(); }
+      if (e.key === 'n' && !e.ctrlKey && !e.metaKey && document.activeElement.tagName !== 'INPUT' && document.activeElement.tagName !== 'TEXTAREA') {
+        e.preventDefault(); openModal();
+      }
+    });
+  </script>
+</body>
+</html>
