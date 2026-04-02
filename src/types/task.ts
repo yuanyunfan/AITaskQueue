@@ -1,4 +1,4 @@
-export type TaskStatus = 'queued' | 'running' | 'done' | 'failed' | 'paused' | 'review'
+export type TaskStatus = 'blocked' | 'queued' | 'running' | 'done' | 'failed' | 'paused' | 'review'
 export type QueueType = 'auto' | 'semi' | 'human'
 export type Priority = 'p0' | 'p1' | 'p2' | 'p3'
 

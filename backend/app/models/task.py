@@ -16,7 +16,7 @@ class Task(Base):
     project: Mapped[str | None] = mapped_column(String(100), index=True)
     parent_id: Mapped[str | None] = mapped_column(String(36), index=True)
     status: Mapped[TaskStatus] = mapped_column(
-        Enum(TaskStatus), default=TaskStatus.QUEUED, index=True
+        Enum(TaskStatus), default=TaskStatus.BLOCKED, index=True
     )
     queue_type: Mapped[QueueType] = mapped_column(
         Enum(QueueType), nullable=False, index=True

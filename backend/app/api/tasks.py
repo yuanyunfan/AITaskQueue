@@ -136,6 +136,32 @@ async def resume_task(task_id: str, db: AsyncSession = Depends(get_db)):
     return resp
 
 
+@router.post("/{task_id}/unblock")
+async def unblock_task(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Move task from blocked → queued so orchestrator can pick it up."""
+    svc = TaskService(db)
+    task = await svc.get_by_id(task_id)
+    if not task or task.status.value != 'blocked':
+        raise HTTPException(status_code=400, detail="Task not in blocked status")
+    task = await svc.update_fields(task_id, status='QUEUED')
+    resp = TaskResponse.from_model(task).model_dump()
+    await ws_manager.broadcast("task:updated", resp)
+    return resp
+
+
+@router.post("/{task_id}/block")
+async def block_task(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Move task back to blocked status."""
+    svc = TaskService(db)
+    task = await svc.get_by_id(task_id)
+    if not task or task.status.value not in ('queued', 'paused'):
+        raise HTTPException(status_code=400, detail="Task must be queued or paused to block")
+    task = await svc.update_fields(task_id, status='BLOCKED')
+    resp = TaskResponse.from_model(task).model_dump()
+    await ws_manager.broadcast("task:updated", resp)
+    return resp
+
+
 @router.post("/reorder", status_code=204)
 async def reorder_tasks(data: ReorderRequest, db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)

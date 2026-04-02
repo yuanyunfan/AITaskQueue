@@ -2,6 +2,7 @@ import enum
 
 
 class TaskStatus(str, enum.Enum):
+    BLOCKED = "blocked"
     QUEUED = "queued"
     RUNNING = "running"
     DONE = "done"

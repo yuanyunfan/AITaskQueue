@@ -67,6 +67,14 @@ export async function rejectTask(id: string) {
   return request(`/tasks/${id}/reject`, { method: 'POST' })
 }
 
+export async function unblockTask(id: string) {
+  return request(`/tasks/${id}/unblock`, { method: 'POST' })
+}
+
+export async function blockTask(id: string) {
+  return request(`/tasks/${id}/block`, { method: 'POST' })
+}
+
 export async function reorderTasks(queueType: string, taskIds: string[]) {
   return request('/tasks/reorder', {
     method: 'POST',

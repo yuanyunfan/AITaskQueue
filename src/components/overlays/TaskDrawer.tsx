@@ -8,7 +8,7 @@ import { ProgressBar } from '@/components/shared/ProgressBar'
 import { QUEUE_LABELS, QUEUE_COLORS } from '@/constants/colors'
 import { PRIORITY_LABELS } from '@/constants/colors'
 import { formatTime } from '@/lib/utils'
-import { approveTask, rejectTask, pauseTask, resumeTask, deleteTask, updateTask as apiUpdateTask } from '@/lib/api'
+import { approveTask, rejectTask, pauseTask, resumeTask, deleteTask, updateTask as apiUpdateTask, unblockTask, blockTask } from '@/lib/api'
 import type { Priority, QueueType } from '@/types'
 
 const PROJECT_COLORS: Record<string, { bg: string; text: string }> = {
@@ -39,7 +39,7 @@ export function TaskDrawer() {
   if (!isOpen || !task) return null
 
   const isLive = BACKEND_MODE === 'live'
-  const canEdit = task.status === 'queued' || task.status === 'paused'
+  const canEdit = task.status === 'blocked' || task.status === 'queued' || task.status === 'paused'
   const canDelete = task.status !== 'running'
 
   const startEditing = () => {
@@ -128,6 +128,30 @@ export function TaskDrawer() {
       }
     } else {
       updateTask(task.id, { status: 'queued', progress: 0, assignedAgent: undefined })
+    }
+  }
+
+  const handleUnblock = async () => {
+    if (isLive) {
+      try {
+        await unblockTask(task.id)
+      } catch (err) {
+        console.error('Failed to unblock task:', err)
+      }
+    } else {
+      updateTask(task.id, { status: 'queued' })
+    }
+  }
+
+  const handleBlock = async () => {
+    if (isLive) {
+      try {
+        await blockTask(task.id)
+      } catch (err) {
+        console.error('Failed to block task:', err)
+      }
+    } else {
+      updateTask(task.id, { status: 'blocked' })
     }
   }
 
@@ -322,6 +346,20 @@ export function TaskDrawer() {
                     onClick={handleResume}
                     className="w-full px-4 py-2 rounded-lg text-sm bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
                   >▶ 恢复任务</button>
+                )}
+
+                {task.status === 'blocked' && (
+                  <button
+                    onClick={handleUnblock}
+                    className="w-full px-4 py-2 rounded-lg text-sm bg-status-running/20 text-status-running hover:bg-status-running/30 transition-colors font-medium"
+                  >▶ 加入执行队列</button>
+                )}
+
+                {task.status === 'queued' && (
+                  <button
+                    onClick={handleBlock}
+                    className="w-full px-4 py-2 rounded-lg text-sm bg-text-muted/20 text-text-muted hover:bg-text-muted/30 transition-colors"
+                  >⏹ 移出队列 (Block)</button>
                 )}
               </>
             )}

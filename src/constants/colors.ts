@@ -1,6 +1,7 @@
 import type { TaskStatus, QueueType, Priority } from '@/types'
 
 export const STATUS_COLORS: Record<TaskStatus, string> = {
+  blocked: 'text-text-muted',
   running: 'text-status-running',
   queued: 'text-status-queued',
   failed: 'text-status-failed',
@@ -10,6 +11,7 @@ export const STATUS_COLORS: Record<TaskStatus, string> = {
 }
 
 export const STATUS_BG_COLORS: Record<TaskStatus, string> = {
+  blocked: 'bg-text-muted',
   running: 'bg-status-running',
   queued: 'bg-status-queued',
   failed: 'bg-status-failed',
@@ -19,6 +21,7 @@ export const STATUS_BG_COLORS: Record<TaskStatus, string> = {
 }
 
 export const STATUS_LABELS: Record<TaskStatus, string> = {
+  blocked: 'Blocked',
   running: 'Running',
   queued: 'Queued',
   failed: 'Failed',
