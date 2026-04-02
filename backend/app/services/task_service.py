@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -9,6 +9,7 @@ from app.models.enums import TaskStatus, QueueType, Priority
 from app.models.history import HistoryEntry
 from app.models.activity import ActivityEvent, Notification
 from app.models.enums import EventType
+from app.config import settings
 
 
 class TaskService:
@@ -80,15 +81,21 @@ class TaskService:
         if not task:
             return None
         for key, value in kwargs.items():
-            if value is not None and hasattr(task, key):
-                # Convert string values to enums where needed
-                if key == 'status':
-                    value = TaskStatus(value.upper() if value.islower() else value)
-                elif key == 'queue_type':
-                    value = QueueType(value.upper() if value.islower() else value)
-                elif key == 'priority':
-                    value = Priority(value.upper() if value.islower() else value)
+            if not hasattr(task, key):
+                continue
+            # Allow explicit None for nullable fields (e.g. assigned_agent=None)
+            if value is None:
                 setattr(task, key, value)
+                continue
+            # Convert string values to enums where needed;
+            # skip conversion if already an enum instance.
+            if key == 'status' and isinstance(value, str):
+                value = TaskStatus(value.lower())
+            elif key == 'queue_type' and isinstance(value, str):
+                value = QueueType(value.lower())
+            elif key == 'priority' and isinstance(value, str):
+                value = Priority(value.lower())
+            setattr(task, key, value)
         await self.session.commit()
         await self.session.refresh(task)
         return task
@@ -194,3 +201,60 @@ class TaskService:
         )
         self.session.add(entry)
         await self.session.commit()
+
+    async def get_stale_tasks(
+        self,
+        stale_threshold: int | None = None,
+        active_task_ids: set[str] | None = None,
+    ) -> list[Task]:
+        """
+        Find tasks that appear stuck / stale.
+
+        A task is considered stale when it is RUNNING and either:
+        1. Its subprocess is no longer tracked (orphaned) — if *active_task_ids*
+           is provided and the task.id is not in the set.
+        2. It has had no activity for longer than *stale_threshold* seconds
+           (checked via ``last_activity_at`` or ``started_at`` as fallback).
+        """
+        threshold = stale_threshold or settings.stale_threshold_seconds
+        cutoff = datetime.now(timezone.utc) - timedelta(seconds=threshold)
+
+        running = await self.get_by_status("running")
+        stale: list[Task] = []
+
+        for task in running:
+            # Case 1: orphaned — subprocess no longer tracked
+            if active_task_ids is not None and task.id not in active_task_ids:
+                stale.append(task)
+                continue
+
+            # Case 2: no activity for too long
+            last_ts = task.last_activity_at or task.started_at
+            if last_ts and last_ts < cutoff:
+                stale.append(task)
+
+        return stale
+
+    async def reset_stale_task(self, task_id: str) -> Task | None:
+        """Reset a stale RUNNING task back to QUEUED."""
+        task = await self.get_by_id(task_id)
+        if not task or task.status != TaskStatus.RUNNING:
+            return None
+
+        task.status = TaskStatus.QUEUED
+        task.progress = 0
+        task.assigned_agent = None
+        task.subprocess_pid = None
+        task.last_activity_at = None
+        task.error_message = "Reset: task was stale (no activity)"
+
+        event = ActivityEvent(
+            id=str(uuid.uuid4())[:8],
+            type=EventType.INFO,
+            message=f'⚠️ "{task.title}" 长时间无响应，已重置为排队',
+        )
+        self.session.add(event)
+
+        await self.session.commit()
+        await self.session.refresh(task)
+        return task

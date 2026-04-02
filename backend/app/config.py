@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     max_concurrent_agents: int = 4
     task_timeout_seconds: int = 600
     orchestrator_poll_interval: float = 5.0
+    stale_threshold_seconds: int = 300  # task with no activity for this long is stale
 
     # Claude CLI subprocess configuration.
     # The CLI reads ANTHROPIC_BASE_URL / ANTHROPIC_API_KEY from shell env.

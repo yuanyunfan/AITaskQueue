@@ -166,3 +166,23 @@ async def block_task(task_id: str, db: AsyncSession = Depends(get_db)):
 async def reorder_tasks(data: ReorderRequest, db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)
     await svc.reorder(data.queue_type, data.task_ids)
+
+
+@router.get("/stale", response_model=list[dict])
+async def list_stale_tasks(db: AsyncSession = Depends(get_db)):
+    """List tasks that appear stale (RUNNING but no activity for a long time)."""
+    svc = TaskService(db)
+    stale = await svc.get_stale_tasks()
+    return [TaskResponse.from_model(t).model_dump() for t in stale]
+
+
+@router.post("/{task_id}/reset-stale")
+async def reset_stale_task(task_id: str, db: AsyncSession = Depends(get_db)):
+    """Manually reset a stale RUNNING task back to QUEUED."""
+    svc = TaskService(db)
+    task = await svc.reset_stale_task(task_id)
+    if not task:
+        raise HTTPException(status_code=400, detail="Task not in running status or not found")
+    resp = TaskResponse.from_model(task).model_dump()
+    await ws_manager.broadcast("task:updated", resp)
+    return resp
