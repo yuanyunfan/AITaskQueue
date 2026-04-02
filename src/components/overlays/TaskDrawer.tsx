@@ -5,11 +5,10 @@ import { useTaskStore } from '@/stores/task-store'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { ProgressBar } from '@/components/shared/ProgressBar'
-import { QUEUE_LABELS, QUEUE_COLORS } from '@/constants/colors'
-import { PRIORITY_LABELS } from '@/constants/colors'
+import { QUEUE_LABELS, QUEUE_COLORS, PRIORITY_LABELS, STATUS_LABELS } from '@/constants/colors'
 import { formatTime } from '@/lib/utils'
 import { approveTask, rejectTask, pauseTask, resumeTask, deleteTask, updateTask as apiUpdateTask, unblockTask, blockTask } from '@/lib/api'
-import type { Priority, QueueType } from '@/types'
+import type { Priority, QueueType, TaskStatus } from '@/types'
 
 const PROJECT_COLORS: Record<string, { bg: string; text: string }> = {
   Finance: { bg: 'bg-green-500/20', text: 'text-green-400' },
@@ -33,27 +32,30 @@ export function TaskDrawer() {
   const [isEditing, setIsEditing] = useState(false)
   const [editTitle, setEditTitle] = useState('')
   const [editDescription, setEditDescription] = useState('')
+  const [editStatus, setEditStatus] = useState<TaskStatus>('blocked')
   const [editPriority, setEditPriority] = useState<Priority>('p2')
   const [editQueueType, setEditQueueType] = useState<QueueType>('auto')
 
   if (!isOpen || !task) return null
 
   const isLive = BACKEND_MODE === 'live'
-  const canEdit = task.status === 'blocked' || task.status === 'queued' || task.status === 'paused'
+  const canEdit = true // always allow editing
   const canDelete = task.status !== 'running'
 
   const startEditing = () => {
     setEditTitle(task.title)
     setEditDescription(task.description || '')
+    setEditStatus(task.status)
     setEditPriority(task.priority)
     setEditQueueType(task.queueType)
     setIsEditing(true)
   }
 
   const saveEdit = async () => {
-    const updates = {
+    const updates: Record<string, unknown> = {
       title: editTitle.trim() || task.title,
       description: editDescription.trim() || undefined,
+      status: editStatus,
       priority: editPriority,
       queueType: editQueueType,
     }
@@ -200,6 +202,18 @@ export function TaskDrawer() {
                     onChange={(e) => setEditDescription(e.target.value)}
                     className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent resize-none h-20"
                   />
+                </div>
+                <div>
+                  <label className="text-text-muted text-xs block mb-1">状态</label>
+                  <div className="flex flex-wrap gap-1.5">
+                    {(['blocked', 'queued', 'running', 'paused', 'review', 'done', 'failed'] as TaskStatus[]).map((s) => (
+                      <button
+                        key={s}
+                        onClick={() => setEditStatus(s)}
+                        className={`px-2.5 py-1 rounded text-xs border transition-colors ${editStatus === s ? 'bg-accent/20 border-accent text-accent' : 'bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover'}`}
+                      >{STATUS_LABELS[s]}</button>
+                    ))}
+                  </div>
                 </div>
                 <div>
                   <label className="text-text-muted text-xs block mb-1">优先级</label>

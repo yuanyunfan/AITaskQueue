@@ -81,6 +81,13 @@ class TaskService:
             return None
         for key, value in kwargs.items():
             if value is not None and hasattr(task, key):
+                # Convert string values to enums where needed
+                if key == 'status':
+                    value = TaskStatus(value.upper() if value.islower() else value)
+                elif key == 'queue_type':
+                    value = QueueType(value.upper() if value.islower() else value)
+                elif key == 'priority':
+                    value = Priority(value.upper() if value.islower() else value)
                 setattr(task, key, value)
         await self.session.commit()
         await self.session.refresh(task)

@@ -16,6 +16,7 @@ class TaskCreate(BaseModel):
 class TaskUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
+    status: str | None = None
     project: str | None = Field(default=None)
     parent_id: str | None = Field(alias="parentId", default=None)
     priority: str | None = None
