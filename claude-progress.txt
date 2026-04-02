@@ -1,133 +1,21 @@
 # AITaskQueue — Progress Log
 # 每次 Claude Code session 结束时更新此文件，下次 session 开始时读取以恢复上下文。
 
-## Current Status: CLI 子进程引擎完成 — claude_agent_sdk 已替换为 Claude CLI subprocess
+## Current Status: v0.3.0 — 前端 + 后端 + Orchestrator + 基础设施完成
 
-## Completed ✅
+## Completed ✅ (Summary)
 
-### Phase 0: 项目脚手架 (2026-04-02)
-- [x] Vite + React 18 + TypeScript 项目创建
-- [x] 依赖安装: tailwindcss v4, zustand, react-router-dom, @dnd-kit, lucide-react, clsx, tailwind-merge
-- [x] Vite 配置: React plugin + Tailwind plugin + `@/` path alias
-- [x] tsconfig 配置: strict mode, path alias
-- [x] index.html: 中文 lang, 深色 body 背景
-- [x] src/index.css: Tailwind v4 @theme 定义所有设计 token + 自定义动画
-
-### Phase 1: 类型 + Store + Mock 数据 (2026-04-02)
-- [x] src/types/ — Task, Agent, Activity 类型定义
-- [x] src/constants/colors.ts — 状态/队列/优先级颜色映射
-- [x] src/lib/utils.ts — cn(), formatTime(), formatDuration(), generateId()
-- [x] src/stores/ — 5 个 Zustand store (task, agent, activity, ui, history)
-- [x] src/constants/mock-data.ts — 种子数据 (9 tasks, 3 agents, 5 decisions, 6 events, 3 notifications, 8 history)
-- [x] src/mock/simulator.ts — MockSimulator 类 (5 个 setInterval 循环)
-- [x] src/hooks/use-simulator.ts — 初始化 hook
-
-### Harness 文件 (2026-04-02)
-- [x] CLAUDE.md, README.md, init.sh, claude-progress.txt, feature_list.json, CHANGELOG.md
-- [x] Vitest 配置 + test/setup.ts + task-store.test.ts (7 tests passing)
-
-### Phase 2: Layout + 路由 (2026-04-02)
-- [x] src/components/layout/Sidebar.tsx — 左侧 56px 导航栏
-- [x] src/components/layout/AppLayout.tsx — 主布局 (Sidebar + Outlet + Overlays)
-- [x] src/App.tsx — React Router 配置 (4 routes) + 全局键盘快捷键
-- [x] src/main.tsx — 入口文件
-
-### Phase 3: 共享组件 (2026-04-02)
-- [x] StatusBadge, PriorityBadge, ProgressBar, PageHeader
-- [x] NotificationBell (含下拉通知列表)
-
-### Phase 4: Dashboard 页面 (2026-04-02)
-- [x] StatusCards, MainAgentCard, QueueOverview, ActiveTasksTable, LiveFeed
-- [x] DashboardPage.tsx
-
-### Phase 5: Queue 页面 (2026-04-02)
-- [x] KanbanBoard, KanbanColumn, TaskCard (with @dnd-kit drag-and-drop)
-- [x] QueuePage.tsx
-
-### Phase 6: Agents 页面 (2026-04-02)
-- [x] MainAgentPanel + DecisionLog, SubAgentCard
-- [x] AgentsPage.tsx
-
-### Phase 7: History 页面 (2026-04-02)
-- [x] StatsBar, HistoryFilters, HistoryTable
-- [x] HistoryPage.tsx
-
-### Phase 8: 覆盖层组件 (2026-04-02)
-- [x] TaskDrawer (右侧任务详情抽屉)
-- [x] NewTaskModal (新建任务弹窗)
-- [x] ChatPanel (主 Agent 对话面板)
-
-### Phase 10 (partial): 收尾 (2026-04-02)
-- [x] 键盘快捷键 (N=新建, ESC=关闭)
-- [x] 清理 Vite 模板残留文件 (hero.png, react.svg, vite.svg, icons.svg, App.css)
-
-### Backend Phase 1-2: REST API + DB (2026-04-02)
-- [x] FastAPI + SQLAlchemy + Alembic + PostgreSQL backend
-- [x] Models: Task, MainAgentState, SubAgent, DecisionLogEntry, ActivityEvent, Notification, ChatMessage, HistoryEntry
-- [x] Schemas: TaskCreate/Update/Response, AgentResponse, ChatResponse (camelCase aliased)
-- [x] Services: TaskService (CRUD + approve/reject/pause/resume), AgentService (main + sub + decisions)
-- [x] REST API: /api/tasks, /api/agents, /api/activities, /api/history, /api/chat, /api/health
-- [x] WebSocket: ConnectionManager + /ws endpoint
-
-### Agent SDK Integration (2026-04-02)
-- [x] claude-agent-sdk 0.1.54 installed in backend venv
-- [x] backend/app/services/claude_service.py — ClaudeAgentRunner (SDK wrapper, async event stream)
-- [x] backend/app/orchestrator/engine.py — Orchestrator (dispatch loop + uptime loop + task runner management)
-- [x] backend/app/main.py — Orchestrator wired into FastAPI lifespan
-- [x] backend/app/api/chat.py — Real Claude conversation via Agent SDK (context-aware with queue state)
-- [x] backend/app/ws/handler.py — Full WS protocol (state:full_sync, task:action, ping/pong)
-- [x] backend/app/config.py — Claude SDK config fields + extra="ignore"
-- [x] src/lib/api.ts — REST API client (task CRUD, chat, health)
-- [x] src/lib/ws.ts — WebSocket manager (auto-reconnect, heartbeat, typed handlers)
-- [x] src/lib/store-sync.ts — WS → Zustand store bridge (full_sync + incremental updates)
-- [x] src/hooks/use-backend.ts — Mode switching (live vs mock)
-- [x] src/components/layout/AppLayout.tsx — Conditional mock/live initialization
-- [x] src/components/overlays/ChatPanel.tsx — Live Claude chat + mock fallback + WS status
-- [x] src/components/overlays/NewTaskModal.tsx — REST API submit + mock fallback
-- [x] vite.config.ts — Proxy /api and /ws to backend:8000
-- [x] .env — VITE_BACKEND_MODE + AITASK_CLAUDE_* config
-
-### WebSocket + Frontend Integration (2026-04-02, backend/websocket-integration branch)
-- [x] Backend schemas (agent, chat) 重构为 camelCase 直出 — MainAgentResponse, SubAgentResponse, DecisionLogResponse, ChatMessageResponse
-- [x] SubAgentResponse 新增 runningMinutes 字段 (从 running_since datetime 计算)
-- [x] ChatMessageResponse.timestamp 改为 epoch ms (int) 匹配前端 ChatMessage 类型
-- [x] DecisionLogResponse.timestamp 改为 epoch ms (int) 匹配前端 DecisionLogEntry 类型
-- [x] tasks.py broadcast payload 修正 — task:updated 发扁平 TaskResponse 而非嵌套 {id, changes}
-- [x] ws/handler.py _send_full_sync 使用 DecisionLogResponse.from_model() 替代手动 dict
-- [x] api.ts request() 处理 204 No Content (DELETE 不 parse json)
-- [x] TaskDrawer.tsx action buttons (approve/reject/pause/resume/delete/edit) 走 REST API (live 模式) + mock fallback
-- [x] NewTaskModal.tsx 已有 live/mock 双模式 ✅ (之前已完成)
-- [x] ChatPanel.tsx 已有 live/mock 双模式 ✅ (之前已完成)
-- [x] AppLayout.tsx 已有 mode-based 初始化 ✅ (之前已完成)
-- [x] store-sync.ts 完整 WS → Zustand 桥接 ✅ (之前已完成)
-- [x] ws.ts WebSocket manager + auto-reconnect ✅ (之前已完成)
-- [x] use-backend.ts mode 切换 hook ✅ (之前已完成)
-- [x] Vite proxy /api + /ws 配置 ✅ (之前已完成)
-
-### CLI Subprocess Engine (2026-04-02) — backend/orchestrator 分支
-- [x] ClaudeCodeRunner (subprocess_runner.py) — asyncio.create_subprocess_exec 管理 Claude CLI 子进程
-  - spawn_streaming() — stream-json 模式，background reader + asyncio.Queue，支持 break/cancel 安全清理
-  - run_once() — json 模式，单次调用用于 chat
-  - kill_process() — SIGTERM → 5s → SIGKILL
-  - kill_all() — shutdown 时清理所有子进程
-  - is_timed_out() / estimate_progress() / get_pid() — 进程监控
-- [x] PriorityScheduler (scheduler.py) — P0>P1>P2>P3, FIFO within same priority, skip human queue
-- [x] OrchestratorEngine (engine.py) — 重写使用 ClaudeCodeRunner
-  - _tick() 三阶段: 超时检查 → scheduler 选任务 → dispatch
-  - PID tracking 存入 Task.subprocess_pid + SubAgent.pid
-  - start() 中恢复残留 RUNNING 任务 → QUEUED
-  - 队列策略: auto→done, semi→review+notification, human→done
-  - 失败重试: retry_count < max_retries → re-queue
-- [x] config.py — 新增 claude_cli_path, claude_max_budget_usd
-- [x] chat.py — _query_claude() 改用 ClaudeCodeRunner.run_once()
-- [x] claude_service.py — 改为 re-export shim (backward compat)
-- [x] pyproject.toml — 移除 claude-agent-sdk 依赖
-- [x] orchestrator/__init__.py — 导出新模块
+- Phase 0-8: 完整前端 UI (Dashboard, Queue/Kanban, Agents, History, TaskDrawer, ChatPanel, NewTaskModal, Notifications)
+- Phase 10: 收尾打磨 (键盘快捷键, 过渡动画, 右键上下文菜单, 模板清理, 测试配置)
+- Backend-1: FastAPI + PostgreSQL + SQLAlchemy + REST API (tasks, agents, activities, history, chat)
+- Backend-2: WebSocket 实时推送 (full_sync + incremental) + 前端 live/mock 双模式
+- Backend-3: Claude CLI subprocess engine + PriorityScheduler + OrchestratorEngine
+- Infra: Docker Compose 三服务, Dockerfile.frontend + nginx, pnpm dev:all 一键开发
+- Dark/Light 主题切换, blocked 默认状态, 项目分组 + 子任务
 
 ## Verification
 - `pnpm build` ✅ (tsc + vite build, 0 errors)
 - `pnpm test` ✅ (43 tests passing)
-- Backend schemas verified: all .model_dump() produce camelCase matching frontend types
 - `pnpm dev` ✅ (dev server at http://localhost:5173)
 
 ## How to Use
@@ -139,6 +27,11 @@ VITE_BACKEND_MODE=mock pnpm dev
 
 ### Live mode (requires PostgreSQL + backend):
 ```
+pnpm dev:all   # one command starts db + backend + frontend
+```
+
+Or manually:
+```
 # Terminal 1: Start PostgreSQL
 docker compose up -d db
 
@@ -149,33 +42,28 @@ cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 
 VITE_BACKEND_MODE=live pnpm dev
 ```
 
+### Full Docker deployment:
+```
+docker compose up --build
+# Open http://localhost:5173
+```
+
 ## Architecture Notes
 - ClaudeCodeRunner uses asyncio.create_subprocess_exec to spawn Claude CLI (not claude_agent_sdk)
 - stream-json mode for tasks (real-time progress), json mode for chat (single-turn)
-- --bare flag on task subprocesses (skip hooks/LSP/MCP for faster headless execution)
-- Queue + background reader task pattern for clean async generator teardown
 - PriorityScheduler is stateless (pure function: list in → list out)
 - Orchestrator.start() resets stale RUNNING tasks to QUEUED on restart
-- Three queue types: auto→done, semi→review (wait for approval), human→done (manual dispatch only)
-- Frontend in 'live' mode is purely driven by WebSocket (backend is source of truth)
-- Frontend in 'mock' mode runs original MockSimulator (no backend needed)
+- Three queue types: auto→done, semi→review (wait for approval), human→done
+- Frontend 'live' mode driven by WebSocket; 'mock' mode runs MockSimulator
 - Task runners execute in parallel asyncio tasks, each consuming a CLI subprocess stream
 
 ## Not Started ⏳
 
-### Phase 9: Mock Simulator 验证
+### Phase 9: Mock Simulator 端到端验证
 - [ ] 打开浏览器端到端验证所有 simulator 行为
-- [ ] 验证进度条实时更新
-- [ ] 验证任务自动完成/进入验收
-- [ ] 验证新任务随机入队
-
-### Phase 10 (remaining):
-- [ ] 过渡动画效果打磨
-- [ ] 更多 store 单元测试
+- [ ] 验证进度条实时更新、任务自动完成/验收、随机入队
 
 ### Backend remaining:
 - [ ] Alembic migration 执行验证
 - [ ] 端到端测试 (create task → orchestrator picks up → Claude executes → WS updates → UI reflects)
-- [ ] Backend unit tests (orchestrator, claude_service, ws_handler)
-- [ ] Concurrent dev script (pnpm dev starts both frontend + backend)
-- [ ] TaskDrawer actions (pause/resume/approve/reject) wired to REST API
+- [ ] Backend unit tests (orchestrator, subprocess_runner, ws_handler)

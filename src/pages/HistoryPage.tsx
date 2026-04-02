@@ -5,7 +5,7 @@ import { HistoryTable } from '@/components/history/HistoryTable'
 
 export function HistoryPage() {
   return (
-    <div className="p-6">
+    <div className="p-6 animate-page-enter">
       <PageHeader title="History">
         <HistoryFilters />
       </PageHeader>

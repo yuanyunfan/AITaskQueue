@@ -8,7 +8,7 @@ export function AgentsPage() {
   const subAgents = useAgentStore((s) => s.subAgents)
 
   return (
-    <div className="p-6">
+    <div className="p-6 animate-page-enter">
       <PageHeader title="Agent Monitor" />
       <MainAgentPanel />
       <h3 className="font-medium text-sm text-text-secondary mb-3">Sub Agents</h3>

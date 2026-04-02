@@ -1,16 +1,35 @@
+import { useState, useCallback } from 'react'
 import { useDroppable } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import type { Task, QueueType } from '@/types'
 import { QUEUE_LABELS, QUEUE_DOT_COLORS } from '@/constants/colors'
 import { TaskCard } from './TaskCard'
+import { ContextMenu } from './ContextMenu'
 
 interface KanbanColumnProps {
   queueType: QueueType
   tasks: Task[]
 }
 
+interface ContextMenuState {
+  x: number
+  y: number
+  task: Task
+}
+
 export function KanbanColumn({ queueType, tasks }: KanbanColumnProps) {
   const { setNodeRef } = useDroppable({ id: queueType })
+  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null)
+
+  const handleContextMenu = useCallback((e: React.MouseEvent, task: Task) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setContextMenu({ x: e.clientX, y: e.clientY, task })
+  }, [])
+
+  const closeContextMenu = useCallback(() => {
+    setContextMenu(null)
+  }, [])
 
   return (
     <div className="min-h-[400px]">
@@ -23,11 +42,21 @@ export function KanbanColumn({ queueType, tasks }: KanbanColumnProps) {
         <SortableContext items={tasks.map((t) => t.id)} strategy={verticalListSortingStrategy}>
           <div className="space-y-2">
             {tasks.map((task) => (
-              <TaskCard key={task.id} task={task} />
+              <div key={task.id} onContextMenu={(e) => handleContextMenu(e, task)}>
+                <TaskCard task={task} />
+              </div>
             ))}
           </div>
         </SortableContext>
       </div>
+      {contextMenu && (
+        <ContextMenu
+          x={contextMenu.x}
+          y={contextMenu.y}
+          task={contextMenu.task}
+          onClose={closeContextMenu}
+        />
+      )}
     </div>
   )
 }

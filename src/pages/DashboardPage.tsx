@@ -7,7 +7,7 @@ import { LiveFeed } from '@/components/dashboard/LiveFeed'
 
 export function DashboardPage() {
   return (
-    <div className="p-6">
+    <div className="p-6 animate-page-enter">
       <PageHeader title="Dashboard" />
       <StatusCards />
       <div className="grid grid-cols-3 gap-4 mb-6">
