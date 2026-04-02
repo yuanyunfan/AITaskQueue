@@ -24,6 +24,7 @@ from app.services.task_service import TaskService
 from app.services.agent_service import AgentService
 from app.orchestrator.subprocess_runner import (
     ClaudeCodeRunner,
+    AgentEvent,
     AgentEventType,
 )
 from app.orchestrator.scheduler import PriorityScheduler
@@ -357,6 +358,9 @@ class Orchestrator:
                         await self._store_pid(task_id, agent_id, pid)
                         pid_stored = True
 
+                # Persist + broadcast every event as an agent log
+                await self._emit_agent_log(task_id, agent_id, event)
+
                 if event.type in (
                     AgentEventType.PROGRESS,
                     AgentEventType.TOOL_USE,
@@ -414,6 +418,40 @@ class Orchestrator:
             agent_svc = AgentService(session)
             await task_svc.update_fields(task_id, subprocess_pid=pid)
             await agent_svc.update_sub_agent(agent_id, pid=pid)
+
+    async def _emit_agent_log(
+        self, task_id: str, agent_id: str, event: AgentEvent,
+    ):
+        """Persist an AgentEvent to DB and broadcast via WS."""
+        now = datetime.now(timezone.utc)
+        ts_ms = int(now.timestamp() * 1000)
+
+        async with self._session_factory() as session:
+            agent_svc = AgentService(session)
+            log = await agent_svc.add_log(
+                agent_id=agent_id,
+                task_id=task_id,
+                event_type=event.type.value,
+                message=event.message[:500],
+                tool_name=event.tool_name,
+                progress_pct=event.progress_pct,
+                cost_usd=event.cost_usd if event.cost_usd else None,
+            )
+
+        await self._ws.broadcast(
+            "agent:log",
+            {
+                "id": log.id,
+                "agentId": agent_id,
+                "taskId": task_id,
+                "eventType": event.type.value,
+                "message": event.message[:500],
+                "toolName": event.tool_name,
+                "progressPct": event.progress_pct,
+                "costUsd": event.cost_usd if event.cost_usd else None,
+                "timestamp": ts_ms,
+            },
+        )
 
     async def _update_progress(
         self, task_id: str, agent_id: str, progress: int, message: str,

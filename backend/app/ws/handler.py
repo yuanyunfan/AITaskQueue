@@ -62,7 +62,9 @@ async def _send_full_sync(ws: WebSocket):
     from app.models.activity import ActivityEvent as ActivityModel
     from app.models.activity import Notification as NotifModel
     from app.models.chat import ChatMessage as ChatModel
+    from app.models.agent_log import AgentLog
     from app.schemas.agent import MainAgentResponse, SubAgentResponse, DecisionLogResponse
+    from app.schemas.agent_log import AgentLogResponse
     from sqlalchemy import select, desc
 
     async with AsyncSessionLocal() as session:
@@ -75,6 +77,16 @@ async def _send_full_sync(ws: WebSocket):
         agent_svc = AgentService(session)
         main_agent = await agent_svc.get_main_agent()
         sub_agents = await agent_svc.list_sub_agents()
+
+        # Agent logs — recent logs for currently active agents
+        active_agent_ids = [a.id for a in sub_agents if a.current_task_id]
+        agent_logs_data: list[dict] = []
+        for aid in active_agent_ids:
+            agent = next(a for a in sub_agents if a.id == aid)
+            logs = await agent_svc.get_logs(aid, task_id=agent.current_task_id, limit=100)
+            agent_logs_data.extend(
+                AgentLogResponse.from_model(log).model_dump() for log in logs
+            )
 
         # Recent activity events
         result = await session.execute(
@@ -139,6 +151,7 @@ async def _send_full_sync(ws: WebSocket):
             "notifications": notifs_data,
             "chatMessages": chats_data,
             "decisions": decisions_data,
+            "agentLogs": agent_logs_data,
         },
     }
 

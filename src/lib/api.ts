@@ -82,6 +82,20 @@ export async function reorderTasks(queueType: string, taskIds: string[]) {
   })
 }
 
+// ---- Agents ----
+
+export async function stopAgent(agentId: string) {
+  return request(`/agents/subs/${agentId}/stop`, { method: 'POST' })
+}
+
+export async function fetchAgentLogs(agentId: string, taskId?: string) {
+  const params = new URLSearchParams()
+  if (taskId) params.append('task_id', taskId)
+  params.append('limit', '200')
+  const qs = params.toString()
+  return request<Array<Record<string, unknown>>>(`/agents/subs/${agentId}/logs?${qs}`)
+}
+
 // ---- Chat ----
 
 export async function sendChatMessage(content: string) {

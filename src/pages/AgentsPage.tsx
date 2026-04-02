@@ -1,6 +1,7 @@
 import { PageHeader } from '@/components/shared/PageHeader'
 import { MainAgentPanel } from '@/components/agents/MainAgentPanel'
 import { SubAgentCard } from '@/components/agents/SubAgentCard'
+import { AgentLogPanel } from '@/components/agents/AgentLogPanel'
 import { useAgentStore } from '@/stores/agent-store'
 
 export function AgentsPage() {
@@ -19,6 +20,9 @@ export function AgentsPage() {
           <div className="col-span-3 text-center text-text-muted py-8">暂无子 Agent</div>
         )}
       </div>
+
+      {/* Agent log overlay panel */}
+      <AgentLogPanel />
     </div>
   )
 }

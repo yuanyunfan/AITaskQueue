@@ -1,5 +1,6 @@
 import { useTaskStore } from '@/stores/task-store'
 import { useAgentStore } from '@/stores/agent-store'
+import { useAgentLogStore } from '@/stores/agent-log-store'
 import { useActivityStore } from '@/stores/activity-store'
 import { useHistoryStore } from '@/stores/history-store'
 import { generateId } from '@/lib/utils'
@@ -14,6 +15,8 @@ const RANDOM_TASK_NAMES = [
   '整理会议纪要',
 ]
 
+const RANDOM_TOOLS = ['Read', 'Write', 'Bash', 'Grep', 'Glob', 'Edit']
+
 export class MockSimulator {
   private intervals: ReturnType<typeof setInterval>[] = []
 
@@ -25,12 +28,31 @@ export class MockSimulator {
         tasks.forEach((t) => {
           if (t.status === 'running' && t.progress < 100) {
             const increment = Math.floor(Math.random() * 5) + 1
-            updateTask(t.id, { progress: Math.min(t.progress + increment, 100) })
+            const newProgress = Math.min(t.progress + increment, 100)
+            updateTask(t.id, { progress: newProgress })
 
             // Sync sub-agent progress
             if (t.assignedAgent) {
               useAgentStore.getState().updateSubAgent(t.assignedAgent, {
-                progress: Math.min(t.progress + increment, 100),
+                progress: newProgress,
+              })
+
+              // Generate a mock agent log entry
+              const isToolUse = Math.random() > 0.4
+              const toolName = RANDOM_TOOLS[Math.floor(Math.random() * RANDOM_TOOLS.length)]
+              useAgentLogStore.getState().addLog({
+                id: generateId(),
+                agentId: t.assignedAgent,
+                taskId: t.id,
+                eventType: isToolUse ? 'tool_use' : 'text',
+                message: isToolUse
+                  ? `Calling tool: ${toolName}`
+                  : '正在分析代码结构...',
+                toolName: isToolUse ? toolName : null,
+                progressPct: newProgress,
+                costUsd: null,
+                metadata: null,
+                timestamp: Date.now(),
               })
             }
           }
