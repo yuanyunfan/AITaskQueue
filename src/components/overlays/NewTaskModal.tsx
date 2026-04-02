@@ -1,12 +1,15 @@
 import { useState } from 'react'
-import { X } from 'lucide-react'
+import { X, Loader2 } from 'lucide-react'
 import { useUIStore } from '@/stores/ui-store'
 import { useTaskStore } from '@/stores/task-store'
 import { useActivityStore } from '@/stores/activity-store'
 import { useAgentStore } from '@/stores/agent-store'
 import { generateId } from '@/lib/utils'
+import { createTask } from '@/lib/api'
 import type { QueueType, Priority } from '@/types'
 import { cn } from '@/lib/utils'
+
+const BACKEND_MODE = import.meta.env.VITE_BACKEND_MODE || 'mock'
 
 export function NewTaskModal() {
   const isOpen = useUIStore((s) => s.isModalOpen)
@@ -15,41 +18,65 @@ export function NewTaskModal() {
   const addEvent = useActivityStore((s) => s.addEvent)
   const addDecision = useAgentStore((s) => s.addDecision)
 
+  const [title, setTitle] = useState('')
   const [description, setDescription] = useState('')
   const [queueType, setQueueType] = useState<QueueType>('auto')
   const [priority, setPriority] = useState<Priority>('p2')
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (!isOpen) return null
 
-  const handleSubmit = () => {
-    if (!description.trim()) return
-    const title = description.trim().slice(0, 50)
-    const id = generateId()
-    addTask({
-      id,
-      title,
-      description: description.trim(),
-      status: 'queued',
-      queueType,
-      priority,
-      progress: 0,
-      createdAt: Date.now(),
-    })
-    addEvent({
-      id: generateId(),
-      timestamp: Date.now(),
-      type: 'info',
-      message: `新任务入队: "${title}"`,
-    })
-    addDecision({
-      id: generateId(),
-      timestamp: Date.now(),
-      message: `接收新任务 "${title}" → 分类: ${queueType === 'auto' ? '全自动' : queueType === 'semi' ? '半自动' : '人在loop'}, 优先级: ${priority.toUpperCase()}`,
-    })
-    setDescription('')
-    setQueueType('auto')
-    setPriority('p2')
-    closeModal()
+  const handleSubmit = async () => {
+    if (!title.trim() || isSubmitting) return
+
+    if (BACKEND_MODE === 'live') {
+      setIsSubmitting(true)
+      try {
+        await createTask({
+          title: title.trim(),
+          description: description.trim() || undefined,
+          queueType,
+          priority,
+        })
+        setTitle('')
+        setDescription('')
+        setQueueType('auto')
+        setPriority('p2')
+        closeModal()
+      } catch (err) {
+        console.error('Failed to create task:', err)
+      } finally {
+        setIsSubmitting(false)
+      }
+    } else {
+      const id = generateId()
+      addTask({
+        id,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        status: 'queued',
+        queueType,
+        priority,
+        progress: 0,
+        createdAt: Date.now(),
+      })
+      addEvent({
+        id: generateId(),
+        timestamp: Date.now(),
+        type: 'info',
+        message: `新任务入队: "${title.trim()}"`,
+      })
+      addDecision({
+        id: generateId(),
+        timestamp: Date.now(),
+        message: `接收新任务 "${title.trim()}" → 分类: ${queueType === 'auto' ? '全自动' : queueType === 'semi' ? '半自动' : '人在loop'}, 优先级: ${priority.toUpperCase()}`,
+      })
+      setTitle('')
+      setDescription('')
+      setQueueType('auto')
+      setPriority('p2')
+      closeModal()
+    }
   }
 
   const typeOptions: { value: QueueType; label: string; color: string }[] = [
@@ -78,12 +105,24 @@ export function NewTaskModal() {
 
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-text-secondary mb-1.5">描述 <span className="text-status-failed">*</span></label>
+              <label className="block text-sm text-text-secondary mb-1.5">任务名称 <span className="text-status-failed">*</span></label>
+              <input
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent placeholder:text-text-muted"
+                placeholder="输入任务名称..."
+                maxLength={200}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm text-text-secondary mb-1.5">描述</label>
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent resize-none h-24 placeholder:text-text-muted"
-                placeholder="帮我收集本周 AI Agent 领域的重要新闻，整理成中文摘要..."
+                className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2.5 text-sm text-text-primary outline-none focus:border-accent resize-none h-20 placeholder:text-text-muted"
+                placeholder="可选：补充任务的详细说明..."
               />
             </div>
 
@@ -130,7 +169,14 @@ export function NewTaskModal() {
 
           <div className="flex justify-end gap-3 mt-6">
             <button onClick={closeModal} className="px-4 py-2 rounded-lg text-sm text-text-secondary hover:text-text-primary hover:bg-bg-hover transition-colors">Cancel</button>
-            <button onClick={handleSubmit} className="px-4 py-2 rounded-lg text-sm bg-accent hover:bg-blue-600 font-medium transition-colors">Submit →</button>
+            <button
+              onClick={handleSubmit}
+              disabled={isSubmitting || !title.trim()}
+              className="px-4 py-2 rounded-lg text-sm bg-accent hover:bg-blue-600 font-medium transition-colors disabled:opacity-50 flex items-center gap-2"
+            >
+              {isSubmitting && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              Submit →
+            </button>
           </div>
         </div>
       </div>

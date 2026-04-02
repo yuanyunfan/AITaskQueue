@@ -1,108 +1,223 @@
-import { X } from 'lucide-react'
+import { useState } from 'react'
+import { X, Trash2, Pencil, Check } from 'lucide-react'
 import { useUIStore } from '@/stores/ui-store'
 import { useTaskStore } from '@/stores/task-store'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { PriorityBadge } from '@/components/shared/PriorityBadge'
 import { ProgressBar } from '@/components/shared/ProgressBar'
 import { QUEUE_LABELS, QUEUE_COLORS } from '@/constants/colors'
+import { PRIORITY_LABELS } from '@/constants/colors'
 import { formatTime } from '@/lib/utils'
+import type { Priority, QueueType } from '@/types'
 
 export function TaskDrawer() {
   const isOpen = useUIStore((s) => s.isDrawerOpen)
   const closeDrawer = useUIStore((s) => s.closeDrawer)
   const task = useTaskStore((s) => s.selectedTaskId ? s.getTaskById(s.selectedTaskId) : undefined)
   const updateTask = useTaskStore((s) => s.updateTask)
+  const removeTask = useTaskStore((s) => s.removeTask)
+
+  const [isEditing, setIsEditing] = useState(false)
+  const [editTitle, setEditTitle] = useState('')
+  const [editDescription, setEditDescription] = useState('')
+  const [editPriority, setEditPriority] = useState<Priority>('p2')
+  const [editQueueType, setEditQueueType] = useState<QueueType>('auto')
 
   if (!isOpen || !task) return null
+
+  const canEdit = task.status === 'queued' || task.status === 'paused'
+  const canDelete = task.status !== 'running'
+
+  const startEditing = () => {
+    setEditTitle(task.title)
+    setEditDescription(task.description || '')
+    setEditPriority(task.priority)
+    setEditQueueType(task.queueType)
+    setIsEditing(true)
+  }
+
+  const saveEdit = () => {
+    updateTask(task.id, {
+      title: editTitle.trim() || task.title,
+      description: editDescription.trim() || undefined,
+      priority: editPriority,
+      queueType: editQueueType,
+    })
+    setIsEditing(false)
+  }
+
+  const handleDelete = () => {
+    removeTask(task.id)
+    closeDrawer()
+  }
 
   return (
     <>
       <div className="fixed inset-0 bg-black/40 z-40" onClick={closeDrawer} />
       <div className="fixed right-0 top-0 h-full w-[420px] bg-bg-card border-l border-border-default z-50 animate-slide-in-right overflow-y-auto">
         <div className="p-6">
+          {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-lg font-semibold">任务详情</h2>
-            <button onClick={closeDrawer} className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover">
-              <X className="w-5 h-5" />
-            </button>
+            <div className="flex items-center gap-1">
+              {canEdit && !isEditing && (
+                <button onClick={startEditing} title="编辑" className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover">
+                  <Pencil className="w-4 h-4" />
+                </button>
+              )}
+              {canDelete && (
+                <button onClick={handleDelete} title="删除" className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-status-failed hover:bg-status-failed/10">
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              )}
+              <button onClick={() => { setIsEditing(false); closeDrawer() }} className="w-8 h-8 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover">
+                <X className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           <div className="space-y-5">
-            <div>
-              <h3 className="text-base font-medium mb-1">{task.title}</h3>
-              {task.description && <p className="text-text-secondary text-sm">{task.description}</p>}
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <span className="text-text-muted text-xs block mb-1">状态</span>
-                <StatusBadge status={task.status} />
-              </div>
-              <div>
-                <span className="text-text-muted text-xs block mb-1">优先级</span>
-                <PriorityBadge priority={task.priority} />
-              </div>
-              <div>
-                <span className="text-text-muted text-xs block mb-1">队列类型</span>
-                <span className={`text-sm ${QUEUE_COLORS[task.queueType]}`}>{QUEUE_LABELS[task.queueType]}</span>
-              </div>
-              <div>
-                <span className="text-text-muted text-xs block mb-1">分配 Agent</span>
-                <span className="text-sm">{task.assignedAgent || '未分配'}</span>
-              </div>
-            </div>
-
-            {task.status === 'running' && (
-              <div>
-                <span className="text-text-muted text-xs block mb-2">进度</span>
-                <ProgressBar value={task.progress} />
-              </div>
-            )}
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-text-secondary">
-                <span>创建时间</span>
-                <span className="text-text-primary">{formatTime(task.createdAt)}</span>
-              </div>
-              {task.startedAt && (
-                <div className="flex justify-between text-text-secondary">
-                  <span>开始时间</span>
-                  <span className="text-text-primary">{formatTime(task.startedAt)}</span>
+            {/* Title + Description */}
+            {isEditing ? (
+              <div className="space-y-3">
+                <div>
+                  <label className="text-text-muted text-xs block mb-1">任务名称</label>
+                  <input
+                    type="text"
+                    value={editTitle}
+                    onChange={(e) => setEditTitle(e.target.value)}
+                    className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent"
+                  />
                 </div>
-              )}
-              {task.estimatedMinutes && (
-                <div className="flex justify-between text-text-secondary">
-                  <span>预计耗时</span>
-                  <span className="text-text-primary">{task.estimatedMinutes} min</span>
+                <div>
+                  <label className="text-text-muted text-xs block mb-1">描述</label>
+                  <textarea
+                    value={editDescription}
+                    onChange={(e) => setEditDescription(e.target.value)}
+                    className="w-full bg-bg-primary border border-border-default rounded-lg px-3 py-2 text-sm text-text-primary outline-none focus:border-accent resize-none h-20"
+                  />
                 </div>
-              )}
-            </div>
-
-            {task.result && (
-              <div className="bg-bg-primary rounded-lg p-3">
-                <span className="text-text-muted text-xs block mb-1">执行结果</span>
-                <p className="text-sm">{task.result}</p>
+                <div>
+                  <label className="text-text-muted text-xs block mb-1">优先级</label>
+                  <div className="flex gap-2">
+                    {(['p0', 'p1', 'p2', 'p3'] as Priority[]).map((p) => (
+                      <button
+                        key={p}
+                        onClick={() => setEditPriority(p)}
+                        className={`px-3 py-1 rounded text-xs border transition-colors ${editPriority === p ? 'bg-accent/20 border-accent text-accent' : 'bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover'}`}
+                      >{PRIORITY_LABELS[p]}</button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-text-muted text-xs block mb-1">队列类型</label>
+                  <div className="flex gap-2">
+                    {(['auto', 'semi', 'human'] as QueueType[]).map((q) => (
+                      <button
+                        key={q}
+                        onClick={() => setEditQueueType(q)}
+                        className={`flex-1 px-3 py-1 rounded text-xs border transition-colors ${editQueueType === q ? 'bg-accent/20 border-accent text-accent' : 'bg-bg-primary border-border-default text-text-secondary hover:bg-bg-hover'}`}
+                      >{QUEUE_LABELS[q]}</button>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-1">
+                  <button onClick={saveEdit} className="flex-1 px-3 py-1.5 rounded-lg text-sm bg-accent hover:bg-blue-600 text-white font-medium transition-colors flex items-center justify-center gap-1">
+                    <Check className="w-3.5 h-3.5" /> 保存
+                  </button>
+                  <button onClick={() => setIsEditing(false)} className="px-3 py-1.5 rounded-lg text-sm text-text-secondary hover:bg-bg-hover transition-colors">取消</button>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <h3 className="text-base font-medium mb-1">{task.title}</h3>
+                {task.description && <p className="text-text-secondary text-sm">{task.description}</p>}
               </div>
             )}
 
-            {task.status === 'review' && (
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => { updateTask(task.id, { status: 'done', completedAt: Date.now() }); closeDrawer() }}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm bg-status-running/20 text-status-running hover:bg-status-running/30 transition-colors font-medium"
-                >✓ 验收通过</button>
-                <button
-                  onClick={() => updateTask(task.id, { status: 'running', progress: 0 })}
-                  className="flex-1 px-4 py-2 rounded-lg text-sm bg-status-failed/20 text-status-failed hover:bg-status-failed/30 transition-colors font-medium"
-                >✗ 打回重做</button>
-              </div>
-            )}
+            {/* Info Grid */}
+            {!isEditing && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <span className="text-text-muted text-xs block mb-1">状态</span>
+                    <StatusBadge status={task.status} />
+                  </div>
+                  <div>
+                    <span className="text-text-muted text-xs block mb-1">优先级</span>
+                    <PriorityBadge priority={task.priority} />
+                  </div>
+                  <div>
+                    <span className="text-text-muted text-xs block mb-1">队列类型</span>
+                    <span className={`text-sm ${QUEUE_COLORS[task.queueType]}`}>{QUEUE_LABELS[task.queueType]}</span>
+                  </div>
+                  <div>
+                    <span className="text-text-muted text-xs block mb-1">分配 Agent</span>
+                    <span className="text-sm">{task.assignedAgent || '未分配'}</span>
+                  </div>
+                </div>
 
-            {task.status === 'running' && (
-              <button
-                onClick={() => updateTask(task.id, { status: 'paused' })}
-                className="w-full px-4 py-2 rounded-lg text-sm bg-status-paused/20 text-text-secondary hover:bg-status-paused/30 transition-colors"
-              >⏸ 暂停任务</button>
+                {task.status === 'running' && (
+                  <div>
+                    <span className="text-text-muted text-xs block mb-2">进度</span>
+                    <ProgressBar value={task.progress} />
+                  </div>
+                )}
+
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between text-text-secondary">
+                    <span>创建时间</span>
+                    <span className="text-text-primary">{formatTime(task.createdAt)}</span>
+                  </div>
+                  {task.startedAt && (
+                    <div className="flex justify-between text-text-secondary">
+                      <span>开始时间</span>
+                      <span className="text-text-primary">{formatTime(task.startedAt)}</span>
+                    </div>
+                  )}
+                  {task.estimatedMinutes && (
+                    <div className="flex justify-between text-text-secondary">
+                      <span>预计耗时</span>
+                      <span className="text-text-primary">{task.estimatedMinutes} min</span>
+                    </div>
+                  )}
+                </div>
+
+                {task.result && (
+                  <div className="bg-bg-primary rounded-lg p-3">
+                    <span className="text-text-muted text-xs block mb-1">执行结果</span>
+                    <p className="text-sm">{task.result}</p>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                {task.status === 'review' && (
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => { updateTask(task.id, { status: 'done', completedAt: Date.now() }); closeDrawer() }}
+                      className="flex-1 px-4 py-2 rounded-lg text-sm bg-status-running/20 text-status-running hover:bg-status-running/30 transition-colors font-medium"
+                    >✓ 验收通过</button>
+                    <button
+                      onClick={() => updateTask(task.id, { status: 'running', progress: 0 })}
+                      className="flex-1 px-4 py-2 rounded-lg text-sm bg-status-failed/20 text-status-failed hover:bg-status-failed/30 transition-colors font-medium"
+                    >✗ 打回重做</button>
+                  </div>
+                )}
+
+                {task.status === 'running' && (
+                  <button
+                    onClick={() => updateTask(task.id, { status: 'paused' })}
+                    className="w-full px-4 py-2 rounded-lg text-sm bg-status-paused/20 text-text-secondary hover:bg-status-paused/30 transition-colors"
+                  >⏸ 暂停任务</button>
+                )}
+
+                {task.status === 'paused' && (
+                  <button
+                    onClick={() => updateTask(task.id, { status: 'queued', progress: 0, assignedAgent: undefined })}
+                    className="w-full px-4 py-2 rounded-lg text-sm bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
+                  >▶ 恢复任务</button>
+                )}
+              </>
             )}
           </div>
         </div>
