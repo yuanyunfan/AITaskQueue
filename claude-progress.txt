@@ -1,7 +1,7 @@
 # AITaskQueue — Progress Log
 # 每次 Claude Code session 结束时更新此文件，下次 session 开始时读取以恢复上下文。
 
-## Current Status: Backend Phase 2 完成 — REST API + Schemas + Services 就位
+## Current Status: Agent SDK Integration Phase 1-3 完成 — 编排层 + 前端数据层就位
 
 ## Completed ✅
 
@@ -61,10 +61,64 @@
 - [x] 键盘快捷键 (N=新建, ESC=关闭)
 - [x] 清理 Vite 模板残留文件 (hero.png, react.svg, vite.svg, icons.svg, App.css)
 
+### Backend Phase 1-2: REST API + DB (2026-04-02)
+- [x] FastAPI + SQLAlchemy + Alembic + PostgreSQL backend
+- [x] Models: Task, MainAgentState, SubAgent, DecisionLogEntry, ActivityEvent, Notification, ChatMessage, HistoryEntry
+- [x] Schemas: TaskCreate/Update/Response, AgentResponse, ChatResponse (camelCase aliased)
+- [x] Services: TaskService (CRUD + approve/reject/pause/resume), AgentService (main + sub + decisions)
+- [x] REST API: /api/tasks, /api/agents, /api/activities, /api/history, /api/chat, /api/health
+- [x] WebSocket: ConnectionManager + /ws endpoint
+
+### Agent SDK Integration (2026-04-02)
+- [x] claude-agent-sdk 0.1.54 installed in backend venv
+- [x] backend/app/services/claude_service.py — ClaudeAgentRunner (SDK wrapper, async event stream)
+- [x] backend/app/orchestrator/engine.py — Orchestrator (dispatch loop + uptime loop + task runner management)
+- [x] backend/app/main.py — Orchestrator wired into FastAPI lifespan
+- [x] backend/app/api/chat.py — Real Claude conversation via Agent SDK (context-aware with queue state)
+- [x] backend/app/ws/handler.py — Full WS protocol (state:full_sync, task:action, ping/pong)
+- [x] backend/app/config.py — Claude SDK config fields + extra="ignore"
+- [x] src/lib/api.ts — REST API client (task CRUD, chat, health)
+- [x] src/lib/ws.ts — WebSocket manager (auto-reconnect, heartbeat, typed handlers)
+- [x] src/lib/store-sync.ts — WS → Zustand store bridge (full_sync + incremental updates)
+- [x] src/hooks/use-backend.ts — Mode switching (live vs mock)
+- [x] src/components/layout/AppLayout.tsx — Conditional mock/live initialization
+- [x] src/components/overlays/ChatPanel.tsx — Live Claude chat + mock fallback + WS status
+- [x] src/components/overlays/NewTaskModal.tsx — REST API submit + mock fallback
+- [x] vite.config.ts — Proxy /api and /ws to backend:8000
+- [x] .env — VITE_BACKEND_MODE + AITASK_CLAUDE_* config
+
 ## Verification
 - `pnpm build` ✅ (tsc + vite build, 0 errors)
-- `pnpm test` ✅ (7 tests passing)
+- `pnpm test` ✅ (43 tests passing)
+- Backend imports ✅ (ClaudeAgentRunner, Orchestrator all importable)
 - `pnpm dev` ✅ (dev server at http://localhost:5173)
+
+## How to Use
+
+### Mock mode (default, no backend needed):
+```
+VITE_BACKEND_MODE=mock pnpm dev
+```
+
+### Live mode (requires PostgreSQL + backend):
+```
+# Terminal 1: Start PostgreSQL
+docker compose up -d db
+
+# Terminal 2: Start backend
+cd backend && source .venv/bin/activate && uvicorn app.main:app --reload --port 8000
+
+# Terminal 3: Start frontend
+VITE_BACKEND_MODE=live pnpm dev
+```
+
+## Architecture Notes
+- Agent SDK spawns Claude Code CLI as subprocess — inherits ANTHROPIC_BASE_URL (LiteLLM proxy) from shell env
+- Orchestrator replaces MockSimulator's 5 setInterval loops with real Claude execution
+- Three queue types: auto→done, semi→review (wait for approval), human→done
+- Frontend in 'live' mode is purely driven by WebSocket (backend is source of truth)
+- Frontend in 'mock' mode runs original MockSimulator (no backend needed)
+- Task runners execute in parallel asyncio tasks, each wrapping a Claude Agent SDK session
 
 ## Not Started ⏳
 
@@ -78,7 +132,9 @@
 - [ ] 过渡动画效果打磨
 - [ ] 更多 store 单元测试
 
-## Architecture Notes
-- 所有 src/mock/ 下的代码是临时模拟层，未来替换为 WebSocket 后端
-- Store 接口变更时必须同步更新 simulator
-- 组件间数据流全部通过 Zustand store，不超过 1 层 prop drilling
+### Backend remaining:
+- [ ] Alembic migration 执行验证
+- [ ] 端到端测试 (create task → orchestrator picks up → Claude executes → WS updates → UI reflects)
+- [ ] Backend unit tests (orchestrator, claude_service, ws_handler)
+- [ ] Concurrent dev script (pnpm dev starts both frontend + backend)
+- [ ] TaskDrawer actions (pause/resume/approve/reject) wired to REST API

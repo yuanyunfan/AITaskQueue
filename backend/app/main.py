@@ -1,3 +1,4 @@
+import logging
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -6,18 +7,45 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
 from app.api import health, tasks, agents, activities, history, chat
 from app.ws.handler import ws_router
+from app.ws.manager import ws_manager
+from app.database import AsyncSessionLocal
+from app.orchestrator import Orchestrator
+
+logger = logging.getLogger(__name__)
+
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG if settings.debug else logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: orchestrator will be started here in Phase 5
+    orchestrator: Orchestrator | None = None
+
+    if settings.orchestrator_enabled:
+        orchestrator = Orchestrator(
+            session_factory=AsyncSessionLocal,
+            ws_manager=ws_manager,
+        )
+        await orchestrator.start()
+        app.state.orchestrator = orchestrator
+        logger.info("Orchestrator is running")
+    else:
+        app.state.orchestrator = None
+        logger.info("Orchestrator disabled (AITASK_ORCHESTRATOR_ENABLED=false)")
+
     yield
-    # Shutdown: orchestrator will be stopped here in Phase 5
+
+    if orchestrator:
+        await orchestrator.stop()
+        logger.info("Orchestrator stopped")
 
 
 app = FastAPI(
     title="AITaskQueue",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
