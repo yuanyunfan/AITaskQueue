@@ -9,7 +9,7 @@ export function SubAgentCard({ agent }: SubAgentCardProps) {
   const isActive = agent.status === 'active'
 
   return (
-    <div className="bg-bg-card rounded-xl border border-border-default p-4 hover:border-[#475569] transition-colors">
+    <div className="bg-bg-card rounded-xl border border-border-default p-4 hover:border-border-default/50 transition-colors">
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2">
           <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-sm ${isActive ? 'bg-status-running/20' : 'bg-status-queued/20'}`}>🤖</div>

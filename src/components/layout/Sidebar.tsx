@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { LayoutDashboard, ClipboardList, Monitor, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { ThemeToggle } from './ThemeToggle'
 
 const NAV_ITEMS = [
   { path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -38,6 +39,8 @@ export function Sidebar() {
           )
         })}
       </nav>
+
+      <ThemeToggle />
     </aside>
   )
 }

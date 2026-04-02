@@ -8,6 +8,17 @@ import { useEffect } from 'react'
 import { useUIStore } from '@/stores/ui-store'
 
 export default function App() {
+  // Initialize theme on app load
+  useEffect(() => {
+    const theme = useUIStore.getState().theme
+    const html = document.documentElement
+    if (theme === 'dark') {
+      html.classList.add('dark')
+    } else {
+      html.classList.remove('dark')
+    }
+  }, [])
+
   // Global keyboard shortcuts
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
