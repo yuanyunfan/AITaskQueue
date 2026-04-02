@@ -64,10 +64,11 @@ pnpm preview          # Preview production build
 4. **更新 `feature_list.json`** — 将对应 feature 的 `"passes"` 改为 `true`
 5. **更新 phase 的 `"status"`** — 如果该 phase 所有 feature 都 passes，改为 `"done"`
 6. **更新 `summary` 字段** — 重新计算 done/remaining/progress_pct
+7. **同步更新 `README.md`** — 如果功能变更影响了架构、启动方式、配置项、核心概念，必须同步更新 README 中对应内容
 
 ### Session 结束前 — 必须执行：
-7. **更新 `claude-progress.txt`** — 记录本次完成了什么、下一步是什么、遇到的问题
-8. **更新 `CHANGELOG.md`** — 如果有显著功能完成，添加新版本条目
+8. **更新 `claude-progress.txt`** — 记录本次完成了什么、下一步是什么、遇到的问题
+9. **更新 `CHANGELOG.md`** — 如果有显著功能完成，添加新版本条目
 
 ## Testing
 
