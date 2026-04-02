@@ -62,7 +62,7 @@ async def _send_full_sync(ws: WebSocket):
     from app.models.activity import ActivityEvent as ActivityModel
     from app.models.activity import Notification as NotifModel
     from app.models.chat import ChatMessage as ChatModel
-    from app.schemas.agent import MainAgentResponse, SubAgentResponse
+    from app.schemas.agent import MainAgentResponse, SubAgentResponse, DecisionLogResponse
     from sqlalchemy import select, desc
 
     async with AsyncSessionLocal() as session:
@@ -127,14 +127,7 @@ async def _send_full_sync(ws: WebSocket):
 
         # Decisions
         decisions = await agent_svc.get_decisions(limit=30)
-        decisions_data = [
-            {
-                "id": d.id,
-                "timestamp": int(d.timestamp.timestamp() * 1000) if d.timestamp else 0,
-                "message": d.message,
-            }
-            for d in reversed(decisions)
-        ]
+        decisions_data = [DecisionLogResponse.from_model(d).model_dump() for d in reversed(decisions)]
 
     sync_payload = {
         "type": "state:full_sync",

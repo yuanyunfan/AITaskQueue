@@ -1,7 +1,7 @@
 # AITaskQueue — Progress Log
 # 每次 Claude Code session 结束时更新此文件，下次 session 开始时读取以恢复上下文。
 
-## Current Status: Agent SDK Integration Phase 1-3 完成 — 编排层 + 前端数据层就位
+## Current Status: WebSocket + 前端接入完成 — backend/websocket-integration 分支
 
 ## Completed ✅
 
@@ -87,10 +87,27 @@
 - [x] vite.config.ts — Proxy /api and /ws to backend:8000
 - [x] .env — VITE_BACKEND_MODE + AITASK_CLAUDE_* config
 
+### WebSocket + Frontend Integration (2026-04-02, backend/websocket-integration branch)
+- [x] Backend schemas (agent, chat) 重构为 camelCase 直出 — MainAgentResponse, SubAgentResponse, DecisionLogResponse, ChatMessageResponse
+- [x] SubAgentResponse 新增 runningMinutes 字段 (从 running_since datetime 计算)
+- [x] ChatMessageResponse.timestamp 改为 epoch ms (int) 匹配前端 ChatMessage 类型
+- [x] DecisionLogResponse.timestamp 改为 epoch ms (int) 匹配前端 DecisionLogEntry 类型
+- [x] tasks.py broadcast payload 修正 — task:updated 发扁平 TaskResponse 而非嵌套 {id, changes}
+- [x] ws/handler.py _send_full_sync 使用 DecisionLogResponse.from_model() 替代手动 dict
+- [x] api.ts request() 处理 204 No Content (DELETE 不 parse json)
+- [x] TaskDrawer.tsx action buttons (approve/reject/pause/resume/delete/edit) 走 REST API (live 模式) + mock fallback
+- [x] NewTaskModal.tsx 已有 live/mock 双模式 ✅ (之前已完成)
+- [x] ChatPanel.tsx 已有 live/mock 双模式 ✅ (之前已完成)
+- [x] AppLayout.tsx 已有 mode-based 初始化 ✅ (之前已完成)
+- [x] store-sync.ts 完整 WS → Zustand 桥接 ✅ (之前已完成)
+- [x] ws.ts WebSocket manager + auto-reconnect ✅ (之前已完成)
+- [x] use-backend.ts mode 切换 hook ✅ (之前已完成)
+- [x] Vite proxy /api + /ws 配置 ✅ (之前已完成)
+
 ## Verification
 - `pnpm build` ✅ (tsc + vite build, 0 errors)
 - `pnpm test` ✅ (43 tests passing)
-- Backend imports ✅ (ClaudeAgentRunner, Orchestrator all importable)
+- Backend schemas verified: all .model_dump() produce camelCase matching frontend types
 - `pnpm dev` ✅ (dev server at http://localhost:5173)
 
 ## How to Use

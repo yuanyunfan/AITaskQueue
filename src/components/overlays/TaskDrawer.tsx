@@ -8,7 +8,10 @@ import { ProgressBar } from '@/components/shared/ProgressBar'
 import { QUEUE_LABELS, QUEUE_COLORS } from '@/constants/colors'
 import { PRIORITY_LABELS } from '@/constants/colors'
 import { formatTime } from '@/lib/utils'
+import { approveTask, rejectTask, pauseTask, resumeTask, deleteTask, updateTask as apiUpdateTask } from '@/lib/api'
 import type { Priority, QueueType } from '@/types'
+
+const BACKEND_MODE = import.meta.env.VITE_BACKEND_MODE || 'mock'
 
 export function TaskDrawer() {
   const isOpen = useUIStore((s) => s.isDrawerOpen)
@@ -25,6 +28,7 @@ export function TaskDrawer() {
 
   if (!isOpen || !task) return null
 
+  const isLive = BACKEND_MODE === 'live'
   const canEdit = task.status === 'queued' || task.status === 'paused'
   const canDelete = task.status !== 'running'
 
@@ -36,19 +40,85 @@ export function TaskDrawer() {
     setIsEditing(true)
   }
 
-  const saveEdit = () => {
-    updateTask(task.id, {
+  const saveEdit = async () => {
+    const updates = {
       title: editTitle.trim() || task.title,
       description: editDescription.trim() || undefined,
       priority: editPriority,
       queueType: editQueueType,
-    })
+    }
+    if (isLive) {
+      try {
+        await apiUpdateTask(task.id, updates)
+      } catch (err) {
+        console.error('Failed to update task:', err)
+      }
+    } else {
+      updateTask(task.id, updates)
+    }
     setIsEditing(false)
   }
 
-  const handleDelete = () => {
-    removeTask(task.id)
+  const handleDelete = async () => {
+    if (isLive) {
+      try {
+        await deleteTask(task.id)
+      } catch (err) {
+        console.error('Failed to delete task:', err)
+      }
+    } else {
+      removeTask(task.id)
+    }
     closeDrawer()
+  }
+
+  const handleApprove = async () => {
+    if (isLive) {
+      try {
+        await approveTask(task.id)
+      } catch (err) {
+        console.error('Failed to approve task:', err)
+      }
+    } else {
+      updateTask(task.id, { status: 'done', completedAt: Date.now() })
+    }
+    closeDrawer()
+  }
+
+  const handleReject = async () => {
+    if (isLive) {
+      try {
+        await rejectTask(task.id)
+      } catch (err) {
+        console.error('Failed to reject task:', err)
+      }
+    } else {
+      updateTask(task.id, { status: 'running', progress: 0 })
+    }
+  }
+
+  const handlePause = async () => {
+    if (isLive) {
+      try {
+        await pauseTask(task.id)
+      } catch (err) {
+        console.error('Failed to pause task:', err)
+      }
+    } else {
+      updateTask(task.id, { status: 'paused' })
+    }
+  }
+
+  const handleResume = async () => {
+    if (isLive) {
+      try {
+        await resumeTask(task.id)
+      } catch (err) {
+        console.error('Failed to resume task:', err)
+      }
+    } else {
+      updateTask(task.id, { status: 'queued', progress: 0, assignedAgent: undefined })
+    }
   }
 
   return (
@@ -194,11 +264,11 @@ export function TaskDrawer() {
                 {task.status === 'review' && (
                   <div className="flex gap-3 pt-2">
                     <button
-                      onClick={() => { updateTask(task.id, { status: 'done', completedAt: Date.now() }); closeDrawer() }}
+                      onClick={handleApprove}
                       className="flex-1 px-4 py-2 rounded-lg text-sm bg-status-running/20 text-status-running hover:bg-status-running/30 transition-colors font-medium"
                     >✓ 验收通过</button>
                     <button
-                      onClick={() => updateTask(task.id, { status: 'running', progress: 0 })}
+                      onClick={handleReject}
                       className="flex-1 px-4 py-2 rounded-lg text-sm bg-status-failed/20 text-status-failed hover:bg-status-failed/30 transition-colors font-medium"
                     >✗ 打回重做</button>
                   </div>
@@ -206,14 +276,14 @@ export function TaskDrawer() {
 
                 {task.status === 'running' && (
                   <button
-                    onClick={() => updateTask(task.id, { status: 'paused' })}
+                    onClick={handlePause}
                     className="w-full px-4 py-2 rounded-lg text-sm bg-status-paused/20 text-text-secondary hover:bg-status-paused/30 transition-colors"
                   >⏸ 暂停任务</button>
                 )}
 
                 {task.status === 'paused' && (
                   <button
-                    onClick={() => updateTask(task.id, { status: 'queued', progress: 0, assignedAgent: undefined })}
+                    onClick={handleResume}
                     className="w-full px-4 py-2 rounded-lg text-sm bg-accent/20 text-accent hover:bg-accent/30 transition-colors"
                   >▶ 恢复任务</button>
                 )}

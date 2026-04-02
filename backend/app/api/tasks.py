@@ -51,7 +51,7 @@ async def update_task(task_id: str, data: TaskUpdate, db: AsyncSession = Depends
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     resp = TaskResponse.from_model(task).model_dump()
-    await ws_manager.broadcast("task:updated", {"id": task_id, "changes": resp})
+    await ws_manager.broadcast("task:updated", resp)
     return resp
 
 
@@ -71,7 +71,7 @@ async def approve_task(task_id: str, db: AsyncSession = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=400, detail="Task not in review status")
     resp = TaskResponse.from_model(task).model_dump()
-    await ws_manager.broadcast("task:updated", {"id": task_id, "changes": resp})
+    await ws_manager.broadcast("task:updated", resp)
     return resp
 
 
@@ -82,7 +82,7 @@ async def reject_task(task_id: str, db: AsyncSession = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=400, detail="Task not in review status")
     resp = TaskResponse.from_model(task).model_dump()
-    await ws_manager.broadcast("task:updated", {"id": task_id, "changes": resp})
+    await ws_manager.broadcast("task:updated", resp)
     return resp
 
 
@@ -93,7 +93,7 @@ async def pause_task(task_id: str, db: AsyncSession = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=400, detail="Task not running")
     resp = TaskResponse.from_model(task).model_dump()
-    await ws_manager.broadcast("task:updated", {"id": task_id, "changes": resp})
+    await ws_manager.broadcast("task:updated", resp)
     return resp
 
 
@@ -104,7 +104,7 @@ async def resume_task(task_id: str, db: AsyncSession = Depends(get_db)):
     if not task:
         raise HTTPException(status_code=400, detail="Task not paused")
     resp = TaskResponse.from_model(task).model_dump()
-    await ws_manager.broadcast("task:updated", {"id": task_id, "changes": resp})
+    await ws_manager.broadcast("task:updated", resp)
     return resp
 
 

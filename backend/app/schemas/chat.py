@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
-
 from pydantic import BaseModel
 
 from app.models.chat import ChatMessage
@@ -12,18 +10,20 @@ class ChatMessageCreate(BaseModel):
 
 
 class ChatMessageResponse(BaseModel):
+    """Frontend-facing chat message response with epoch ms timestamp."""
     id: str
     role: str
     content: str
-    timestamp: datetime | None = None
-
-    model_config = {"from_attributes": True}
+    timestamp: int = 0  # epoch ms
 
     @classmethod
     def from_model(cls, msg: ChatMessage) -> ChatMessageResponse:
+        ts = 0
+        if msg.timestamp:
+            ts = int(msg.timestamp.timestamp() * 1000)
         return cls(
             id=msg.id,
             role=msg.role,
             content=msg.content,
-            timestamp=msg.timestamp,
+            timestamp=ts,
         )
