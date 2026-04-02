@@ -43,7 +43,7 @@ export function QueuePage() {
   }, [tasks])
 
   return (
-    <div className="p-6">
+    <div className="p-6 animate-page-enter">
       <PageHeader title="Task Queue" />
 
       {/* Project Filter Tabs */}

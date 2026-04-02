@@ -1,6 +1,6 @@
 {
   "project": "AITaskQueue",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "last_updated": "2026-04-02",
   "phases": [
     {
@@ -76,7 +76,7 @@
         { "id": "f061", "name": "KanbanColumn", "passes": true },
         { "id": "f062", "name": "TaskCard (可拖拽)", "passes": true },
         { "id": "f063", "name": "@dnd-kit 排序逻辑", "passes": true },
-        { "id": "f064", "name": "右键菜单 (暂停/取消/插队)", "passes": false },
+        { "id": "f064", "name": "右键菜单 (暂停/取消/插队)", "passes": true },
         { "id": "f065", "name": "QueuePage 组装", "passes": true }
       ]
     },
@@ -124,20 +124,70 @@
     {
       "id": "phase-10",
       "name": "收尾打磨",
-      "status": "in_progress",
+      "status": "done",
       "features": [
-        { "id": "f110", "name": "过渡动画效果", "passes": false },
+        { "id": "f110", "name": "过渡动画效果", "passes": true },
         { "id": "f111", "name": "键盘快捷键 (N=新建, ESC=关闭)", "passes": true },
         { "id": "f112", "name": "清理 Vite 模板残留文件", "passes": true },
         { "id": "f113", "name": "Vitest 测试框架配置", "passes": true },
         { "id": "f114", "name": "核心 store 单元测试", "passes": true }
       ]
+    },
+    {
+      "id": "backend-1",
+      "name": "REST API + 数据库",
+      "status": "done",
+      "features": [
+        { "id": "f200", "name": "FastAPI + SQLAlchemy + asyncpg 项目结构", "passes": true },
+        { "id": "f201", "name": "PostgreSQL 数据模型 (Task, Agent, Activity, etc.)", "passes": true },
+        { "id": "f202", "name": "Alembic migration 配置", "passes": true },
+        { "id": "f203", "name": "Pydantic schemas (camelCase alias)", "passes": true },
+        { "id": "f204", "name": "TaskService CRUD + 状态操作", "passes": true },
+        { "id": "f205", "name": "AgentService (主Agent + 子Agent + 决策日志)", "passes": true },
+        { "id": "f206", "name": "REST API endpoints (tasks, agents, activities, history, chat, health)", "passes": true }
+      ]
+    },
+    {
+      "id": "backend-2",
+      "name": "WebSocket 实时推送",
+      "status": "done",
+      "features": [
+        { "id": "f210", "name": "ConnectionManager (WebSocket 连接池)", "passes": true },
+        { "id": "f211", "name": "/ws endpoint + full_sync 协议", "passes": true },
+        { "id": "f212", "name": "Incremental 更新推送 (task/agent/activity/notification)", "passes": true },
+        { "id": "f213", "name": "前端 ws.ts WebSocket manager (auto-reconnect, heartbeat)", "passes": true },
+        { "id": "f214", "name": "store-sync.ts WS → Zustand 桥接", "passes": true },
+        { "id": "f215", "name": "use-backend.ts live/mock 模式切换 hook", "passes": true }
+      ]
+    },
+    {
+      "id": "backend-3",
+      "name": "Orchestrator + CLI Engine",
+      "status": "done",
+      "features": [
+        { "id": "f220", "name": "ClaudeCodeRunner (subprocess_runner.py)", "passes": true },
+        { "id": "f221", "name": "PriorityScheduler (P0>P1>P2>P3 调度)", "passes": true },
+        { "id": "f222", "name": "OrchestratorEngine (dispatch + uptime loops)", "passes": true },
+        { "id": "f223", "name": "Chat 对话走 Claude CLI run_once()", "passes": true },
+        { "id": "f224", "name": "Orchestrator lifespan 集成到 FastAPI", "passes": true }
+      ]
+    },
+    {
+      "id": "infra",
+      "name": "基础设施 + DevOps",
+      "status": "done",
+      "features": [
+        { "id": "f300", "name": "Docker Compose 三服务 (db + backend + frontend)", "passes": true },
+        { "id": "f301", "name": "Frontend Dockerfile + nginx 反向代理", "passes": true },
+        { "id": "f302", "name": "pnpm dev:all 一键本地开发", "passes": true },
+        { "id": "f303", "name": "Dark/Light 主题切换", "passes": true }
+      ]
     }
   ],
   "summary": {
-    "total": 42,
-    "done": 38,
-    "remaining": 4,
-    "progress_pct": 90.5
+    "total": 63,
+    "done": 61,
+    "remaining": 2,
+    "progress_pct": 96.8
   }
 }

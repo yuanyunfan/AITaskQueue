@@ -15,5 +15,28 @@ services:
       timeout: 5s
       retries: 5
 
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file:
+      - .env.docker
+    environment:
+      AITASK_DATABASE_URL: postgresql+asyncpg://aitask:aitask@db:5432/aitaskqueue
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+
 volumes:
   pgdata:
