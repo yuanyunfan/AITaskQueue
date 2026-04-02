@@ -65,7 +65,8 @@ export function TaskDrawer() {
         // Also update local store immediately for instant UI feedback
         updateTask(task.id, updates)
       } catch (err) {
-        console.error('Failed to update task:', err)
+        console.error('Failed to update task via API, falling back to local store:', err)
+        updateTask(task.id, updates)
       }
     } else {
       updateTask(task.id, updates)
@@ -78,7 +79,8 @@ export function TaskDrawer() {
       try {
         await deleteTask(task.id)
       } catch (err) {
-        console.error('Failed to delete task:', err)
+        console.error('Failed to delete task via API, falling back to local store:', err)
+        removeTask(task.id)
       }
     } else {
       removeTask(task.id)
@@ -91,7 +93,8 @@ export function TaskDrawer() {
       try {
         await approveTask(task.id)
       } catch (err) {
-        console.error('Failed to approve task:', err)
+        console.error('Failed to approve task via API, falling back to local store:', err)
+        updateTask(task.id, { status: 'done', completedAt: Date.now() })
       }
     } else {
       updateTask(task.id, { status: 'done', completedAt: Date.now() })
@@ -104,7 +107,8 @@ export function TaskDrawer() {
       try {
         await rejectTask(task.id)
       } catch (err) {
-        console.error('Failed to reject task:', err)
+        console.error('Failed to reject task via API, falling back to local store:', err)
+        updateTask(task.id, { status: 'running', progress: 0 })
       }
     } else {
       updateTask(task.id, { status: 'running', progress: 0 })
@@ -116,7 +120,8 @@ export function TaskDrawer() {
       try {
         await pauseTask(task.id)
       } catch (err) {
-        console.error('Failed to pause task:', err)
+        console.error('Failed to pause task via API, falling back to local store:', err)
+        updateTask(task.id, { status: 'paused' })
       }
     } else {
       updateTask(task.id, { status: 'paused' })
@@ -128,7 +133,8 @@ export function TaskDrawer() {
       try {
         await resumeTask(task.id)
       } catch (err) {
-        console.error('Failed to resume task:', err)
+        console.error('Failed to resume task via API, falling back to local store:', err)
+        updateTask(task.id, { status: 'queued', progress: 0, assignedAgent: undefined })
       }
     } else {
       updateTask(task.id, { status: 'queued', progress: 0, assignedAgent: undefined })
@@ -140,7 +146,8 @@ export function TaskDrawer() {
       try {
         await unblockTask(task.id)
       } catch (err) {
-        console.error('Failed to unblock task:', err)
+        console.error('Failed to unblock task via API, falling back to local store:', err)
+        updateTask(task.id, { status: 'queued' })
       }
     } else {
       updateTask(task.id, { status: 'queued' })
@@ -152,7 +159,8 @@ export function TaskDrawer() {
       try {
         await blockTask(task.id)
       } catch (err) {
-        console.error('Failed to block task:', err)
+        console.error('Failed to block task via API, falling back to local store:', err)
+        updateTask(task.id, { status: 'blocked' })
       }
     } else {
       updateTask(task.id, { status: 'blocked' })
