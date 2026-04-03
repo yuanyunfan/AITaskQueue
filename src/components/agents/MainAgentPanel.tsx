@@ -1,5 +1,5 @@
 import { useAgentStore } from '@/stores/agent-store'
-import { formatDuration, formatTime } from '@/lib/utils'
+import { formatDuration, formatDateTime } from '@/lib/utils'
 
 export function MainAgentPanel() {
   const mainAgent = useAgentStore((s) => s.mainAgent)
@@ -28,7 +28,7 @@ export function MainAgentPanel() {
         <div className="space-y-2 text-sm max-h-40 overflow-y-auto">
           {decisionLog.map((entry) => (
             <div key={entry.id} className="flex gap-3">
-              <span className="text-text-muted text-xs whitespace-nowrap">{formatTime(entry.timestamp)}</span>
+              <span className="text-text-muted text-xs whitespace-nowrap">{formatDateTime(entry.timestamp)}</span>
               <span>{entry.message}</span>
             </div>
           ))}

@@ -28,6 +28,13 @@ export function KanbanBoard({ projectFilter }: KanbanBoardProps) {
         result[t.queueType].push(t)
       }
     }
+    // Sort: running/queued first, then review/paused, then blocked at bottom
+    const statusOrder: Record<string, number> = {
+      running: 0, queued: 1, review: 2, paused: 3, failed: 4, blocked: 5,
+    }
+    for (const q of QUEUE_TYPES) {
+      result[q].sort((a, b) => (statusOrder[a.status] ?? 9) - (statusOrder[b.status] ?? 9))
+    }
     return result
   }, [tasks, projectFilter])
 

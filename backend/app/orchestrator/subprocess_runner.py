@@ -468,10 +468,6 @@ class ClaudeCodeRunner:
         if mode == "stream-json":
             cmd.append("--verbose")
 
-        # Use --bare for task execution (stream-json) to skip hooks/LSP/MCP
-        if mode == "stream-json":
-            cmd.append("--bare")
-
         # Permission mode
         perm = permission_mode or settings.claude_permission_mode
         if perm:
