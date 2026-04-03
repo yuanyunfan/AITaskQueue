@@ -40,6 +40,7 @@ export function initStoreSync(ws: WebSocketManager): () => void {
       chatMessages?: ChatMessage[]
       decisions?: DecisionLogEntry[]
       agentLogs?: AgentLog[]
+      historyEntries?: HistoryEntry[]
     }
 
     // Bulk-load tasks
@@ -84,6 +85,11 @@ export function initStoreSync(ws: WebSocketManager): () => void {
     // Chat messages
     if (data.chatMessages) {
       useUIStore.setState({ chatMessages: data.chatMessages })
+    }
+
+    // History entries
+    if (data.historyEntries) {
+      useHistoryStore.setState({ entries: data.historyEntries })
     }
   })
 

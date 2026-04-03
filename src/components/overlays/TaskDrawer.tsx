@@ -62,6 +62,8 @@ export function TaskDrawer() {
     if (isLive) {
       try {
         await apiUpdateTask(task.id, updates)
+        // Also update local store immediately for instant UI feedback
+        updateTask(task.id, updates)
       } catch (err) {
         console.error('Failed to update task via API, falling back to local store:', err)
         updateTask(task.id, updates)

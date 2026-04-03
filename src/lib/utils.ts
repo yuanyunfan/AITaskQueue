@@ -12,6 +12,17 @@ export function formatTime(timestamp: number): string {
   })
 }
 
+export function formatDateTime(timestamp: number): string {
+  const d = new Date(timestamp)
+  const y = d.getFullYear()
+  const mo = String(d.getMonth() + 1).padStart(2, '0')
+  const dd = String(d.getDate()).padStart(2, '0')
+  const hh = String(d.getHours()).padStart(2, '0')
+  const mm = String(d.getMinutes()).padStart(2, '0')
+  const ss = String(d.getSeconds()).padStart(2, '0')
+  return `${y}-${mo}-${dd} ${hh}:${mm}:${ss}`
+}
+
 export function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60

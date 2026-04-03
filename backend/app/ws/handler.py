@@ -62,6 +62,7 @@ async def _send_full_sync(ws: WebSocket):
     from app.models.activity import ActivityEvent as ActivityModel
     from app.models.activity import Notification as NotifModel
     from app.models.chat import ChatMessage as ChatModel
+    from app.models.history import HistoryEntry as HistoryModel
     from app.models.agent_log import AgentLog
     from app.schemas.agent import MainAgentResponse, SubAgentResponse, DecisionLogResponse
     from app.schemas.agent_log import AgentLogResponse
@@ -139,6 +140,25 @@ async def _send_full_sync(ws: WebSocket):
         decisions = await agent_svc.get_decisions(limit=30)
         decisions_data = [DecisionLogResponse.from_model(d).model_dump() for d in reversed(decisions)]
 
+        # History entries
+        result = await session.execute(
+            select(HistoryModel).order_by(desc(HistoryModel.completed_at)).limit(100)
+        )
+        history_entries = list(result.scalars().all())
+        history_entries.reverse()
+        history_data = [
+            {
+                "id": h.id,
+                "title": h.title,
+                "queueType": h.queue_type.value if hasattr(h.queue_type, "value") else h.queue_type,
+                "status": h.status,
+                "duration": h.duration or 0,
+                "completedAt": int(h.completed_at.timestamp() * 1000) if h.completed_at else 0,
+                "note": h.note,
+            }
+            for h in history_entries
+        ]
+
     sync_payload = {
         "type": "state:full_sync",
         "payload": {
@@ -150,6 +170,7 @@ async def _send_full_sync(ws: WebSocket):
             "chatMessages": chats_data,
             "decisions": decisions_data,
             "agentLogs": agent_logs_data,
+            "historyEntries": history_data,
         },
     }
 

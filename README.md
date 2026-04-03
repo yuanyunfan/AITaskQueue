@@ -145,31 +145,43 @@ WebSocket ←── ws_manager.broadcast() ←── Orchestrator
 - **Orchestrator ↔ DB**: SQLAlchemy async session，每次 tick 创建新 session
 - **状态同步**: 所有状态变更先写 DB，再通过 `ws_manager.broadcast()` 推送到所有前端连接
 
-### Claude CLI 调用方式
+### Claude CLI 调用参数
+
+Orchestrator 通过 `asyncio.create_subprocess_exec` 调用 Claude Code CLI 执行任务。完整参数说明：
+
+| 参数 | 值 | 含义 |
+|------|------|------|
+| `-p` | — | **print 模式**，非交互式，不启动 TUI，结果直接输出到 stdout |
+| `--output-format` | `stream-json` | 任务执行用流式 JSONL（每行一个 JSON，实时看进度）；Chat 对话用 `json`（一次性返回） |
+| `--verbose` | — | 输出 tool 调用的详细过程（哪个工具、参数、结果） |
+| `--permission-mode` | `acceptEdits` | 自动批准文件读写操作，不弹权限确认 |
+| `--max-turns` | `25` | 最多执行 25 轮 agent 循环（每轮可包含 tool 调用），防止无限 loop |
+| `--max-budget-usd` | (可选) | 单任务预算上限（美元），超过自动停止 |
+| `--model` | (可选) | 指定模型，空则用 CLI 默认 |
+| 最后的字符串 | prompt | 任务内容，由 `engine.py` 的 `_build_task_prompt()` 生成 |
 
 两种模式，对应不同场景：
 
 **1. 任务执行 — stream-json 模式（多轮、有 tool）**
 
 ```bash
-claude -p \
+mai-claude -p \
   --output-format stream-json \
   --verbose \
-  --bare \                           # 跳过 hooks/LSP/MCP，无头模式执行更快
-  --permission-mode acceptEdits \    # 自动接受文件编辑
-  --model claude-sonnet-4-20250514 \
+  --permission-mode acceptEdits \
   --max-turns 25 \
-  --max-budget-usd 1.0 \
   "# 任务: Fix authentication bug\n..."
 ```
+
+CLI 启动时加载完整的插件和 MCP servers，任务可使用文件读写、命令执行、web 搜索等所有能力。
 
 **2. Chat 对话 — json 模式（单轮、无 tool）**
 
 ```bash
-claude -p \
+mai-claude -p \
   --output-format json \
   --permission-mode acceptEdits \
-  --max-turns 1 \                    # 单轮，禁止 tool 循环
+  --max-turns 1 \
   --system-prompt "你是 AITaskQueue 的主 Agent 助手。当前任务队列状态: ..." \
   "用户的聊天消息"
 ```

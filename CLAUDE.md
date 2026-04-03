@@ -1,161 +1,106 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
-## Git & GitHub 账号
-
-本项目使用**个人 GitHub 账号**，不是公司账号。详见 `~/.claude/CLAUDE.md` 中的账号配置表。
-
-**推送命令**（已配置好 remote）：
-```bash
-git push origin main
-```
-
 ## Project Overview
 
-AITaskQueue 是一个个人 AI 任务编排 Dashboard，用于管理「主 Agent + 动态子 Agent」的任务调度系统。本地部署，深色主题，一屏总览。
+AITaskQueue — AI 任务编排 Dashboard。主 Agent 监控调度 + 子 Agent 动态执行，三类队列 (auto/semi/human) 控制流程。深色主题，本地部署。
 
-**核心架构**：一个常驻主 Agent 负责监控和调度，子 Agent 动态创建执行具体任务，任务通过三类队列控制执行流程。
-
-## Tech Stack
-
-- **Runtime**: Node.js (pnpm)
-- **Framework**: React 18 + TypeScript (strict mode)
-- **Bundler**: Vite 8
-- **Styling**: Tailwind CSS v4 (CSS-first config via `@theme` in `src/index.css`)
-- **State**: Zustand (5 stores, no Redux)
-- **Routing**: React Router v6
-- **Drag & Drop**: @dnd-kit
-- **Icons**: lucide-react
+Git: 个人 GitHub 账号 (yuanyunfan)，详见 `~/.claude/CLAUDE.md`。推送: `git push origin main`
 
 ## Commands
 
 ```bash
-pnpm install          # Install dependencies
-pnpm dev              # Start dev server (http://localhost:5173)
-pnpm build            # Type-check + production build
+# Frontend
+pnpm dev              # Dev → http://localhost:5173
+pnpm build            # tsc -b + vite build (type check + bundle)
+pnpm test             # Vitest (单个: pnpm test -- path/to/file)
 pnpm lint             # ESLint
-pnpm test             # Run tests (Vitest)
-pnpm test:watch       # Run tests in watch mode
-pnpm test:coverage    # Run tests with coverage report
-pnpm preview          # Preview production build
-./init.sh             # One-shot environment init (checks Node, installs deps, verifies files)
+
+# Backend
+cd backend && pytest -x -v   # 单个: pytest tests/test_foo.py -x -v
+uvicorn app.main:app --reload --port 8000
+
+# Infrastructure
+docker compose up -d db      # PostgreSQL
 ```
 
-## Session Workflow (MANDATORY)
+## IMPORTANT: Verification First
 
-> **IMPORTANT**: 以下步骤是强制性的。每次 session 必须执行，不可跳过。
+YOU MUST verify every change before marking it complete:
+1. `pnpm build` — 0 type errors
+2. `pnpm test -- path/to/changed.test.tsx` — targeted test first, full suite before commit
+3. `cd backend && pytest tests/test_changed.py -x -v` — if backend changed
+4. If UI change: describe the visual result
 
-### Session 开始时 — 必须立即执行：
-1. **读取 `claude-progress.txt`** — 了解上次 session 的进度、当前状态、已知问题
-2. **读取 `feature_list.json`** — 确认下一个 `"passes": false` 的 feature 作为工作目标
-3. **简要汇报给用户**: "上次进度: XXX，本次计划做: YYY"
+**没有验证证据 = 没有完成。** 修 bug 时：先写失败测试复现 → 修复 → 验证通过。
 
-### 每完成一个 feature 时：
-4. **更新 `feature_list.json`** — 将对应 feature 的 `"passes"` 改为 `true`
-5. **更新 phase 的 `"status"`** — 如果该 phase 所有 feature 都 passes，改为 `"done"`
-6. **更新 `summary` 字段** — 重新计算 done/remaining/progress_pct
-7. **同步更新 `README.md`** — 如果功能变更影响了架构、启动方式、配置项、核心概念，必须同步更新 README 中对应内容
+## Critical Rules
 
-### Session 结束前 — 必须执行：
-8. **更新 `claude-progress.txt`** — 记录本次完成了什么、下一步是什么、遇到的问题
-9. **更新 `CHANGELOG.md`** — 如果有显著功能完成，添加新版本条目
+1. **永远不要修改或 commit `.env`** — 包含 secrets
+2. **修改 store 接口时同步更新 `src/mock/simulator.ts`** — Mock 模式会 break
+3. **修改后端 schema 时同步 `src/types/`** — 前端依赖 camelCase JSON
+4. **保持 backend schema camelCase 输出** — alias_generator, 前端硬依赖
+5. **不要直接修改 `dist/`, `node_modules/`, `backend/.venv/`, `pnpm-lock.yaml`**
 
-## Testing
+## Architecture Quick Ref
 
-- **Framework**: Vitest + @testing-library/react + jsdom
-- **Config**: `vite.config.ts` 中的 `test` 字段
-- **Setup**: `test/setup.ts` — 加载 jest-dom matchers
-- **Convention**: 测试文件与源文件同目录，命名 `*.test.ts(x)`
-- **Store tests**: 每个 test 的 `beforeEach` 中用 `store.setState()` 重置状态
-- **Coverage thresholds**: lines/functions/statements 60%, branches 45%
+- **三类队列**: auto (全自动) / semi (完成后人工验收) / human (人在Loop)
+- **5 Zustand stores**: task, agent, activity, ui, history
+- **Orchestrator**: `backend/app/orchestrator/` — engine (tick loop) + scheduler (P0-P3 FIFO) + subprocess_runner (Claude CLI)
+- **WebSocket**: backend 是 source of truth，前端 live 模式由 WS 驱动
+- **双模式**: `VITE_BACKEND_MODE=live` (API+WS) / `mock` (MockSimulator)
+- Config: `backend/app/config.py` — `AITASK_` 前缀环境变量
 
-## Project Structure
+See @README.md for full project structure and setup.
 
-```
-src/
-├── types/            # TypeScript interfaces (Task, Agent, Activity)
-├── constants/        # Color mappings, seed mock data
-├── lib/              # Utilities (cn, formatTime, formatDuration, generateId)
-├── stores/           # Zustand stores (task, agent, activity, ui, history)
-├── mock/             # MockSimulator — 模拟实时数据更新 (替换后端前的临时层)
-├── hooks/            # Custom hooks (useSimulator)
-├── components/       # UI components, grouped by feature domain
-│   ├── layout/       # AppLayout, Sidebar
-│   ├── shared/       # StatusBadge, PriorityBadge, ProgressBar, PageHeader
-│   ├── dashboard/    # StatusCards, MainAgentCard, QueueOverview, ActiveTasksTable, LiveFeed
-│   ├── queue/        # KanbanBoard, KanbanColumn, TaskCard (drag-sortable)
-│   ├── agents/       # MainAgentPanel, DecisionLog, SubAgentGrid, SubAgentCard
-│   ├── history/      # StatsBar, HistoryTable, HistoryFilters
-│   ├── overlays/     # TaskDrawer (右侧抽屉), NewTaskModal, ChatPanel (主Agent对话)
-│   └── notifications/# NotificationBell, NotificationDropdown
-└── pages/            # Page-level composition (Dashboard, Queue, Agents, History)
-```
+## Vibe Coding 工作流
 
-## Architecture Decisions
+### 快速迭代循环
 
-### Three Queue Types
-| Queue | 行为 | 人工参与 |
-|-------|------|---------|
-| `auto` (全自动) | Agent 独立完成 | 无 |
-| `semi` (半自动) | Agent 完成后等人验收 | 验收通过/打回 |
-| `human` (人在loop) | Agent 与人协作 | 全程参与 |
+1. **描述意图** → 让 Claude 实现 → **立即验证** → 发现问题 → 迭代
+2. 小步前进：每次改动聚焦一个目标，验证通过后再进入下一步
+3. 如果连续 2 次修复失败 → `/clear` 重新开始，用更好的 prompt
 
-### State Management — 5 Zustand Stores
-- **taskStore**: 任务 CRUD、队列筛选、优先级排序、状态统计
-- **agentStore**: 主 Agent 状态 + 子 Agent 列表 + 决策日志
-- **activityStore**: Live feed 事件流 (max 50) + 通知 + 未读计数
-- **uiStore**: Drawer/Modal/Chat 等 UI 开关状态
-- **historyStore**: 历史记录 + 筛选 + 统计 (成功率、平均耗时)
+### 什么时候用 Plan 模式
 
-### Mock Simulator
-`src/mock/simulator.ts` 用 5 个 `setInterval` 模拟真实后端行为：
-- 2s: 运行中任务进度递增
-- 5s: 检测 100% 任务 → auto 直接完成, semi 进入验收
-- 8s: 主 Agent 调度 → 将排队任务分配给空闲子 Agent
-- 15s: 随机事件 → 新任务入队 / 失败
-- 1s: 主 Agent uptime 计数
+- 涉及 3+ 文件的改动
+- 新增抽象或架构变更
+- 不确定最佳方案时
+- **先展示计划，等确认后再动手**
 
-**重要**: `src/mock/` 是临时模拟层，未来会替换为真实 WebSocket 后端。修改 store 接口时需同步更新 simulator。
+### 什么时候直接做
 
-### Design System
-颜色通过 Tailwind v4 `@theme` 在 `src/index.css` 中定义，使用语义化 token：
-- `bg-primary`, `bg-card`, `bg-hover` — 背景层次
-- `status-running`, `status-failed`, `status-done` 等 — 状态色
-- `queue-auto`, `queue-semi`, `queue-human` — 队列标识色
-- `priority-p0` ~ `priority-p3` — 优先级色
+- 单文件改动、已知 root cause 的 bug
+- 配置更新、重命名/格式化
+- 有明确的测试可以验证
 
-深色模式 only，不需要 light mode 支持。
+## Error Recovery 策略
 
-### Key UI Patterns
-- **Task detail**: 右侧抽屉弹出 (不跳转页面)
-- **Queue page**: 三列看板 (auto | semi | human)，@dnd-kit 拖拽排序
-- **Chat panel**: 右下角可展开，与主 Agent 对话
-- **Notifications**: 页面内铃铛 + 红点，无浏览器原生通知
+遇到报错时的标准流程：
+1. **完整阅读错误信息** — 不要只看第一行
+2. **定位根因** — 用 Grep/Glob 精确搜索，不广撒网
+3. **查看相关测试** — 理解预期行为
+4. **修复并验证** — 跑测试确认，不要猜测性修复
+5. **如果是新 pattern** — 记录到 Retrospective 中
 
-## Conventions
+## Session Workflow
 
-- **Path alias**: `@/` maps to `src/` (configured in vite.config.ts and tsconfig.app.json)
-- **Component files**: PascalCase (e.g., `StatusBadge.tsx`)
-- **Store files**: kebab-case (e.g., `task-store.ts`)
-- **Imports**: Use `@/` alias, never relative paths crossing feature boundaries
-- **CSS utility**: Use `cn()` from `@/lib/utils` for conditional class merging (clsx + tailwind-merge)
-- **No CSS modules or styled-components** — Tailwind utility classes only
-- **中文 UI text**: 所有面向用户的文本使用中文，代码和注释用英文
+每次 session 开始 **必须先**：读取 `claude-progress.txt` + `feature_list.json`，汇报进度和计划
+每完成 feature **必须**：更新 `feature_list.json` + 同步 `README.md`
+Session 结束前 **必须**：更新 `claude-progress.txt` + `CHANGELOG.md`
 
 ## Git Quality Gates
 
-每次 `git commit` 自动执行 pre-commit hook (`.husky/pre-commit`)，依次检查：
+Pre-commit hook: `tsc -b` → `eslint (staged)` → `pnpm test`。**禁止 `--no-verify`。**
 
-1. **TypeScript type check** (`tsc -b`) — 全项目类型检查，0 error 才通过
-2. **ESLint** (via `lint-staged`) — 仅检查 staged 的 `*.{ts,tsx}` 文件，`--max-warnings=0`
-3. **Unit tests** (`pnpm test`) — 所有 Vitest 测试必须通过
-
-**禁止使用 `--no-verify` 绕过 hook**。如果 hook 失败，修复问题后重新 commit。
+Commit 前确认:
+- [ ] `pnpm build` 通过
+- [ ] 相关测试通过
+- [ ] 后端测试通过 (如果改了后端)
+- [ ] camelCase 输出未被破坏
+- [ ] Mock 模式未被 break
 
 ## Retrospective
 
-> 每次 Agent session 中遇到重大踩坑、关键 bug、或架构决策教训时，在此追加一条记录。
 > 格式: **[日期] 问题描述**: 根因 → 修复方式 → 教训
 
-(暂无条目 — 随项目推进持续积累)
+- **[2026-04-02] update_fields enum 处理**: task_service 中 enum 值需要 `.value` → 添加属性检查 → 所有 enum 序列化都要考虑 `.value`

@@ -115,7 +115,7 @@ class TaskService:
         task.status = TaskStatus.DONE
         task.completed_at = datetime.now(timezone.utc)
 
-        # Create history entry
+        # Create or update history entry (may already exist from failed retries)
         duration = 0
         if task.started_at and task.completed_at:
             duration = int((task.completed_at - task.started_at).total_seconds())
@@ -128,7 +128,7 @@ class TaskService:
             completed_at=task.completed_at,
             note="验收通过 ✓",
         )
-        self.session.add(history)
+        await self.session.merge(history)
 
         event = ActivityEvent(
             id=str(uuid.uuid4())[:8],
@@ -199,7 +199,7 @@ class TaskService:
             duration=duration,
             completed_at=task.completed_at or datetime.now(timezone.utc),
         )
-        self.session.add(entry)
+        await self.session.merge(entry)
         await self.session.commit()
 
     async def get_stale_tasks(
