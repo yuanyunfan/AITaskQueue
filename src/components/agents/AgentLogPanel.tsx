@@ -1,8 +1,9 @@
-import { useEffect, useRef, useMemo } from 'react'
+import { useEffect, useRef, useMemo, useCallback } from 'react'
 import { X, Terminal, ArrowDown } from 'lucide-react'
 import { useUIStore } from '@/stores/ui-store'
 import { useAgentLogStore } from '@/stores/agent-log-store'
 import { useAgentStore } from '@/stores/agent-store'
+import { fetchAgentLogs } from '@/lib/api'
 import { formatTime } from '@/lib/utils'
 import type { AgentLog } from '@/types'
 
@@ -72,6 +73,36 @@ export function AgentLogPanel() {
     return allLogs.filter((l) => l.taskId === taskId)
   }, [allLogs, taskId])
 
+  const isLive = (import.meta.env.VITE_BACKEND_MODE || 'mock') === 'live'
+
+  // REST fallback: fetch logs from API when panel opens and store is empty
+  const fetchedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (!isOpen || !agentId || !isLive) return
+    // Only fetch once per panel open (keyed by agentId)
+    if (fetchedRef.current === agentId) return
+    if (allLogs.length > 0) return
+
+    fetchedRef.current = agentId
+    fetchAgentLogs(agentId, taskId ?? undefined)
+      .then((data) => {
+        const typedLogs = data as unknown as AgentLog[]
+        if (typedLogs.length > 0) {
+          // Merge fetched logs into store
+          for (const log of typedLogs) {
+            useAgentLogStore.getState().addLog(log)
+          }
+        }
+      })
+      .catch((err) => console.error('Failed to fetch agent logs:', err))
+  }, [isOpen, agentId, taskId, isLive, allLogs.length])
+
+  // Reset fetchedRef when panel closes
+  const closeAndReset = useCallback(() => {
+    fetchedRef.current = null
+    closeLogPanel()
+  }, [closeLogPanel])
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const isAutoScroll = useRef(true)
 
@@ -101,7 +132,7 @@ export function AgentLogPanel() {
   return (
     <>
       {/* Backdrop */}
-      <div className="fixed inset-0 bg-black/40 z-40" onClick={closeLogPanel} />
+      <div className="fixed inset-0 bg-black/40 z-40" onClick={closeAndReset} />
 
       {/* Panel */}
       <div className="fixed right-0 top-0 h-full w-[520px] bg-bg-card border-l border-border-default z-50 animate-slide-in-right flex flex-col">
@@ -122,7 +153,7 @@ export function AgentLogPanel() {
           <div className="flex items-center gap-1">
             <span className="text-xs text-text-muted">{logs.length} 条</span>
             <button
-              onClick={closeLogPanel}
+              onClick={closeAndReset}
               className="w-7 h-7 rounded-lg flex items-center justify-center text-text-secondary hover:text-text-primary hover:bg-bg-hover"
             >
               <X className="w-4 h-4" />

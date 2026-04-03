@@ -78,12 +78,10 @@ async def _send_full_sync(ws: WebSocket):
         main_agent = await agent_svc.get_main_agent()
         sub_agents = await agent_svc.list_sub_agents()
 
-        # Agent logs — recent logs for currently active agents
-        active_agent_ids = [a.id for a in sub_agents if a.current_task_id]
+        # Agent logs — recent logs for all agents (not just active)
         agent_logs_data: list[dict] = []
-        for aid in active_agent_ids:
-            agent = next(a for a in sub_agents if a.id == aid)
-            logs = await agent_svc.get_logs(aid, task_id=agent.current_task_id, limit=100)
+        for agent in sub_agents:
+            logs = await agent_svc.get_logs(agent.id, limit=100)
             agent_logs_data.extend(
                 AgentLogResponse.from_model(log).model_dump() for log in logs
             )
