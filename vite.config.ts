@@ -28,6 +28,9 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./test/setup.ts'],
     include: ['src/**/*.test.{ts,tsx}', 'test/**/*.test.{ts,tsx}'],
+    env: {
+      VITE_BACKEND_MODE: 'mock',
+    },
     coverage: {
       provider: 'v8',
       include: ['src/**/*.{ts,tsx}'],

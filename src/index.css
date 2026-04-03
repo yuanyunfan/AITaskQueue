@@ -26,7 +26,7 @@
 }
 
 /* Light mode */
-:not(.dark) {
+html:not(.dark) {
   --color-bg-primary: #F8FAFC;
   --color-bg-card: #F1F5F9;
   --color-bg-hover: #E2E8F0;
