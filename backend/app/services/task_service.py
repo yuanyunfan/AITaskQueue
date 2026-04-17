@@ -82,7 +82,7 @@ class TaskService:
             return None
         ALLOWED_FIELDS = {
             'title', 'description', 'project', 'parent_id',
-            'status', 'queue_type', 'priority',
+            'queue_type', 'priority',
             'estimated_minutes', 'assigned_agent',
             'subprocess_pid', 'progress', 'last_activity_at',
             'result', 'completed_at', 'error_message', 'retry_count',
@@ -96,9 +96,7 @@ class TaskService:
                 continue
             # Convert string values to enums where needed;
             # skip conversion if already an enum instance.
-            if key == 'status' and isinstance(value, str):
-                value = TaskStatus(value.lower())
-            elif key == 'queue_type' and isinstance(value, str):
+            if key == 'queue_type' and isinstance(value, str):
                 value = QueueType(value.lower())
             elif key == 'priority' and isinstance(value, str):
                 value = Priority(value.lower())
