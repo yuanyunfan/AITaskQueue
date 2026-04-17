@@ -495,7 +495,8 @@ class ClaudeCodeRunner:
         if allowed_tools is not None and len(allowed_tools) > 0:
             cmd.extend(["--allowedTools"] + allowed_tools)
 
-        # The prompt itself (last positional argument)
+        # Use '--' to prevent prompt content from being parsed as flags
+        cmd.append("--")
         cmd.append(prompt)
 
         return cmd
