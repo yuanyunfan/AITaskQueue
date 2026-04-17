@@ -80,8 +80,13 @@ class TaskService:
         task = await self.get_by_id(task_id)
         if not task:
             return None
+        ALLOWED_FIELDS = {
+            'title', 'description', 'project', 'parent_id',
+            'status', 'queue_type', 'priority',
+            'estimated_minutes', 'assigned_agent',
+        }
         for key, value in kwargs.items():
-            if not hasattr(task, key):
+            if key not in ALLOWED_FIELDS:
                 continue
             # Allow explicit None for nullable fields (e.g. assigned_agent=None)
             if value is None:
