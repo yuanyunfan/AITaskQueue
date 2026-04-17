@@ -100,7 +100,7 @@ class AgentService:
 
     async def add_decision(self, message: str) -> DecisionLogEntry:
         entry = DecisionLogEntry(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             message=message,
         )
         self.session.add(entry)
@@ -132,7 +132,7 @@ class AgentService:
     ) -> AgentLog:
         """Persist a single AgentEvent as a log row."""
         log = AgentLog(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             agent_id=agent_id,
             task_id=task_id,
             event_type=event_type,

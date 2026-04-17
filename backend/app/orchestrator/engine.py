@@ -197,7 +197,7 @@ class Orchestrator:
                     await self._ws.broadcast(
                         "activity:event",
                         {
-                            "id": str(uuid.uuid4())[:8],
+                            "id": str(uuid.uuid4()),
                             "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
                             "type": "info",
                             "message": f'⚠️ "{task.title}" 长时间无响应，已自动重置',
@@ -289,7 +289,7 @@ class Orchestrator:
         await self._ws.broadcast(
             "activity:event",
             {
-                "id": str(uuid.uuid4())[:8],
+                "id": str(uuid.uuid4()),
                 "timestamp": int(now.timestamp() * 1000),
                 "type": "dispatch",
                 "message": f'\u4e3b Agent \u5c06 "{task.title}" \u5206\u914d\u7ed9 {agent.id}',
@@ -525,7 +525,7 @@ class Orchestrator:
                 # Add notification for semi tasks
                 from app.models.activity import Notification
                 notif = Notification(
-                    id=str(uuid.uuid4())[:8],
+                    id=str(uuid.uuid4()),
                     message=f'"{task_title}" \u7b49\u5f85\u9a8c\u6536',
                     task_id=task_id,
                 )
@@ -578,7 +578,7 @@ class Orchestrator:
             await self._ws.broadcast(
                 "activity:event",
                 {
-                    "id": str(uuid.uuid4())[:8],
+                    "id": str(uuid.uuid4()),
                     "timestamp": int(now.timestamp() * 1000),
                     "type": event_type.value,
                     "message": event_msg,
@@ -665,7 +665,7 @@ class Orchestrator:
             await self._ws.broadcast(
                 "activity:event",
                 {
-                    "id": str(uuid.uuid4())[:8],
+                    "id": str(uuid.uuid4()),
                     "timestamp": int(now.timestamp() * 1000),
                     "type": "failed",
                     "message": event_msg,

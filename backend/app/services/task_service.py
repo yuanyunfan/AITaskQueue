@@ -52,7 +52,7 @@ class TaskService:
 
     async def create(self, title: str, description: str | None, queue_type: str, priority: str, estimated_minutes: int | None = None, project: str | None = None, parent_id: str | None = None) -> Task:
         task = Task(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             title=title,
             description=description,
             project=project,
@@ -66,7 +66,7 @@ class TaskService:
 
         # Add activity event
         event = ActivityEvent(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             type=EventType.INFO,
             message=f'新任务入队: "{title}"',
         )
@@ -136,7 +136,7 @@ class TaskService:
         await self.session.merge(history)
 
         event = ActivityEvent(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             type=EventType.DONE,
             message=f'✅ "{task.title}" 验收通过',
         )
@@ -155,7 +155,7 @@ class TaskService:
         task.assigned_agent = None
 
         event = ActivityEvent(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             type=EventType.INFO,
             message=f'"{task.title}" 被打回，重新入队',
         )
@@ -254,7 +254,7 @@ class TaskService:
         task.error_message = "Reset: task was stale (no activity)"
 
         event = ActivityEvent(
-            id=str(uuid.uuid4())[:8],
+            id=str(uuid.uuid4()),
             type=EventType.INFO,
             message=f'⚠️ "{task.title}" 长时间无响应，已重置为排队',
         )
