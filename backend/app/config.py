@@ -11,6 +11,9 @@ class Settings(BaseSettings):
     debug: bool = True
     cors_origins: list[str] = ["http://localhost:5173"]
 
+    # Authentication
+    api_key: str = ""  # Set via AITASK_API_KEY env var; empty = auth disabled
+
     # Orchestrator
     orchestrator_enabled: bool = True
     max_concurrent_agents: int = 4

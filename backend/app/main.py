@@ -5,7 +5,10 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
+from fastapi import Depends
+
 from app.api import health, tasks, agents, activities, history, chat
+from app.api.deps import verify_api_key
 from app.ws.handler import ws_router
 from app.ws.manager import ws_manager
 from app.database import AsyncSessionLocal
@@ -59,11 +62,11 @@ app.add_middleware(
 
 # REST routes
 app.include_router(health.router, prefix="/api")
-app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"])
-app.include_router(agents.router, prefix="/api/agents", tags=["agents"])
-app.include_router(activities.router, prefix="/api/activities", tags=["activities"])
-app.include_router(history.router, prefix="/api/history", tags=["history"])
-app.include_router(chat.router, prefix="/api/chat", tags=["chat"])
+app.include_router(tasks.router, prefix="/api/tasks", tags=["tasks"], dependencies=[Depends(verify_api_key)])
+app.include_router(agents.router, prefix="/api/agents", tags=["agents"], dependencies=[Depends(verify_api_key)])
+app.include_router(activities.router, prefix="/api/activities", tags=["activities"], dependencies=[Depends(verify_api_key)])
+app.include_router(history.router, prefix="/api/history", tags=["history"], dependencies=[Depends(verify_api_key)])
+app.include_router(chat.router, prefix="/api/chat", tags=["chat"], dependencies=[Depends(verify_api_key)])
 
 # WebSocket
 app.include_router(ws_router)
