@@ -3,6 +3,11 @@ from sqlalchemy.orm import DeclarativeBase
 
 from app.config import settings
 
+if not settings.database_url:
+    raise ValueError(
+        "AITASK_DATABASE_URL is not set. Please configure a valid database URL before starting the backend."
+    )
+
 engine = create_async_engine(
     settings.database_url,
     echo=settings.debug,
