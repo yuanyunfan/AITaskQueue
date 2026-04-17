@@ -93,14 +93,15 @@ class AgentService:
         await self.session.refresh(agent)
         return agent
 
-    async def free_agent(self, agent_id: str) -> None:
+    async def free_agent(self, agent_id: str, *, success: bool = True) -> None:
         agent = await self.get_sub_agent(agent_id)
         if agent:
             agent.status = AgentStatus.IDLE
             agent.current_task_id = None
             agent.current_task_title = None
             agent.progress = 0
-            agent.completed_count += 1
+            if success:
+                agent.completed_count += 1
             agent.pid = None
             agent.running_since = None
             await self.session.commit()
