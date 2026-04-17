@@ -42,6 +42,14 @@ async def list_tasks(project: str | None = Query(None), db: AsyncSession = Depen
     return result
 
 
+@router.get("/stale", response_model=list[dict])
+async def list_stale_tasks(db: AsyncSession = Depends(get_db)):
+    """List tasks that appear stale (RUNNING but no activity for a long time)."""
+    svc = TaskService(db)
+    stale = await svc.get_stale_tasks()
+    return [TaskResponse.from_model(t).model_dump() for t in stale]
+
+
 @router.get("/{task_id}")
 async def get_task(task_id: str, db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)
@@ -166,14 +174,6 @@ async def block_task(task_id: str, db: AsyncSession = Depends(get_db)):
 async def reorder_tasks(data: ReorderRequest, db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)
     await svc.reorder(data.queue_type, data.task_ids)
-
-
-@router.get("/stale", response_model=list[dict])
-async def list_stale_tasks(db: AsyncSession = Depends(get_db)):
-    """List tasks that appear stale (RUNNING but no activity for a long time)."""
-    svc = TaskService(db)
-    stale = await svc.get_stale_tasks()
-    return [TaskResponse.from_model(t).model_dump() for t in stale]
 
 
 @router.post("/{task_id}/reset-stale")
