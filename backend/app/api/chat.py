@@ -77,7 +77,7 @@ async def list_messages(limit: int = 100, db: AsyncSession = Depends(get_db)):
 async def send_message(data: ChatMessageCreate, db: AsyncSession = Depends(get_db)):
     # Save user message
     msg = ChatMessage(
-        id=str(uuid.uuid4())[:8],
+        id=str(uuid.uuid4()),
         role="user",
         content=data.content,
     )
@@ -98,7 +98,7 @@ async def send_message(data: ChatMessageCreate, db: AsyncSession = Depends(get_d
 
     # Save assistant message
     assistant_msg = ChatMessage(
-        id=str(uuid.uuid4())[:8],
+        id=str(uuid.uuid4()),
         role="assistant",
         content=assistant_content,
     )
