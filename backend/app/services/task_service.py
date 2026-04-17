@@ -84,6 +84,8 @@ class TaskService:
             'title', 'description', 'project', 'parent_id',
             'status', 'queue_type', 'priority',
             'estimated_minutes', 'assigned_agent',
+            'subprocess_pid', 'progress', 'last_activity_at',
+            'result', 'completed_at', 'error_message', 'retry_count',
         }
         for key, value in kwargs.items():
             if key not in ALLOWED_FIELDS:
