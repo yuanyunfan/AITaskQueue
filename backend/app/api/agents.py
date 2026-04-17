@@ -45,20 +45,14 @@ async def stop_sub_agent(agent_id: str, request: Request, db: AsyncSession = Dep
     if not agent.current_task_id:
         raise HTTPException(status_code=400, detail="Agent has no running task")
 
-    # Kill the subprocess via orchestrator
+    # Kill the subprocess via orchestrator and let its cancellation flow
+    # handle all state updates (status broadcasts) consistently.
     orchestrator = request.app.state.orchestrator
-    if orchestrator:
-        await orchestrator.cancel_task(agent.current_task_id)
+    if not orchestrator:
+        raise HTTPException(status_code=503, detail="Orchestrator not available")
 
-    # The _run_agent coroutine will handle cleanup (fail_task -> free_agent)
-    # But broadcast an immediate agent update for responsive UI
-    await ws_manager.broadcast("agent:sub_updated", {
-        "id": agent_id,
-        "status": "idle",
-        "currentTaskId": None,
-        "currentTaskTitle": None,
-        "progress": 0,
-    })
+    await orchestrator.cancel_task(agent.current_task_id)
+
     return {"status": "stopped", "agentId": agent_id}
 
 
