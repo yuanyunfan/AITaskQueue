@@ -9,6 +9,7 @@ Human-queue tasks are excluded from automatic dispatch.
 from __future__ import annotations
 
 import logging
+from datetime import datetime
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ class PriorityScheduler:
         eligible.sort(
             key=lambda t: (
                 _PRIORITY_ORDER.get(t.priority, 99),
-                t.created_at or 0,
+                t.created_at or datetime.min,
             )
         )
 
