@@ -566,7 +566,8 @@ class ClaudeCodeRunner:
             await state.event_queue.put(_STREAM_END)
 
         if proc.returncode is not None:
-            # Already exited — let _cleanup_process handle removal
+            # Already exited — remove state so _cleanup_process becomes a no-op
+            self._processes.pop(task_id, None)
             return True
 
         logger.info(
@@ -577,12 +578,14 @@ class ClaudeCodeRunner:
         try:
             proc.terminate()
         except ProcessLookupError:
+            self._processes.pop(task_id, None)
             return True
 
         # Wait up to 5 seconds for graceful exit
         try:
             await asyncio.wait_for(proc.wait(), timeout=5.0)
             logger.info("Process %d terminated gracefully", state.pid)
+            self._processes.pop(task_id, None)
             return True
         except asyncio.TimeoutError:
             pass
@@ -596,6 +599,9 @@ class ClaudeCodeRunner:
             await proc.wait()
         except ProcessLookupError:
             pass
+
+        # Remove from tracked processes so _cleanup_process becomes a no-op
+        self._processes.pop(task_id, None)
 
         return True
 
