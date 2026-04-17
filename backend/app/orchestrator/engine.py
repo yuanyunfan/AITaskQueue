@@ -51,6 +51,7 @@ class Orchestrator:
         self._scheduler = PriorityScheduler()
         self._started_at: datetime | None = None
         self._stopped = False
+        self._tick_lock = asyncio.Lock()                  # prevent concurrent ticks
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -147,8 +148,11 @@ class Orchestrator:
         1. Check running tasks for timeouts and stale/orphaned state
         2. Pick queued tasks via scheduler
         3. Dispatch them
+
+        Protected by _tick_lock to prevent concurrent ticks from dispatching
+        the same task to multiple agents (race condition).
         """
-        async with self._session_factory() as session:
+        async with self._tick_lock, self._session_factory() as session:
             task_svc = TaskService(session)
             agent_svc = AgentService(session)
 
