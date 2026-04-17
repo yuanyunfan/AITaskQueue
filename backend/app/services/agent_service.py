@@ -10,6 +10,16 @@ from app.models.enums import AgentStatus
 
 
 class AgentService:
+    # Explicit allowlists of fields that may be updated via update_*
+    _MAIN_AGENT_UPDATABLE = frozenset({
+        "status", "started_at", "tasks_dispatched",
+        "current_decision", "model", "memory_mb",
+    })
+    _SUB_AGENT_UPDATABLE = frozenset({
+        "status", "current_task_id", "current_task_title",
+        "progress", "completed_count", "running_since", "pid",
+    })
+
     def __init__(self, session: AsyncSession):
         self.session = session
 
@@ -26,7 +36,7 @@ class AgentService:
     async def update_main_agent(self, **kwargs) -> MainAgentState:
         agent = await self.get_main_agent()
         for key, value in kwargs.items():
-            if hasattr(agent, key):
+            if key in self._MAIN_AGENT_UPDATABLE:
                 setattr(agent, key, value)
         await self.session.commit()
         await self.session.refresh(agent)
@@ -87,7 +97,7 @@ class AgentService:
         if not agent:
             return None
         for key, value in kwargs.items():
-            if hasattr(agent, key):
+            if key in self._SUB_AGENT_UPDATABLE:
                 setattr(agent, key, value)
         await self.session.commit()
         await self.session.refresh(agent)
