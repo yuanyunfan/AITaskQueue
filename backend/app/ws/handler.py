@@ -60,8 +60,11 @@ async def websocket_endpoint(ws: WebSocket, api_key: str = Query(default=None)):
                 logger.warning("Invalid JSON from WS client: %s", raw[:100])
 
     except WebSocketDisconnect:
+        logger.info("WebSocket client disconnected (total: %d)", ws_manager.active_count - 1)
+    except Exception:
+        logger.exception("Unexpected error in WebSocket handler")
+    finally:
         await ws_manager.disconnect(ws)
-        logger.info("WebSocket client disconnected (total: %d)", ws_manager.active_count)
 
 
 async def _send_full_sync(ws: WebSocket):
