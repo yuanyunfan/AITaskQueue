@@ -5,11 +5,13 @@ Server → Client: broadcasts from orchestrator (task:updated, agent:*, activity
 Client → Server: chat:send, task:action, ping
 """
 
+import hmac
 import json
 import logging
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Query, WebSocket, WebSocketDisconnect, status
 
+from app.config import settings
 from app.ws.manager import ws_manager
 from app.database import AsyncSessionLocal
 from app.services.task_service import TaskService
@@ -21,7 +23,13 @@ ws_router = APIRouter()
 
 
 @ws_router.websocket("/ws")
-async def websocket_endpoint(ws: WebSocket):
+async def websocket_endpoint(ws: WebSocket, api_key: str = Query(default=None)):
+    # Verify API key if configured
+    if settings.api_key:
+        if not api_key or not hmac.compare_digest(api_key, settings.api_key):
+            await ws.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or missing API key")
+            return
+
     await ws_manager.connect(ws)
     logger.info("WebSocket client connected (total: %d)", ws_manager.active_count)
 
