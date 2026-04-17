@@ -59,8 +59,23 @@ class AgentService:
         if len(all_agents) >= max_agents:
             return None
 
-        # Create new sub-agent
-        agent_num = len(all_agents) + 1
+        # Create new sub-agent with a monotonically increasing ID to avoid
+        # collisions with previously deleted agents (see issue #27).
+        # Check both live agents and historical logs for the highest ID used.
+        max_num = 0
+        for a in all_agents:
+            parts = a.id.split("-")
+            if len(parts) == 2 and parts[1].isdigit():
+                max_num = max(max_num, int(parts[1]))
+        # Also check logs for historically used agent IDs
+        log_result = await self.session.execute(
+            select(AgentLog.agent_id).where(AgentLog.agent_id.like("sub-%")).distinct()
+        )
+        for (aid,) in log_result:
+            parts = aid.split("-")
+            if len(parts) == 2 and parts[1].isdigit():
+                max_num = max(max_num, int(parts[1]))
+        agent_num = max_num + 1
         agent = SubAgent(id=f"sub-{agent_num:02d}")
         self.session.add(agent)
         await self.session.commit()
