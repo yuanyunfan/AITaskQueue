@@ -543,13 +543,30 @@ class ClaudeCodeRunner:
         Kill a task's subprocess with SIGTERM -> wait 5s -> SIGKILL.
         Returns True if a process was found and killed.
         """
-        state = self._processes.pop(task_id, None)
+        state = self._processes.get(task_id)
         if not state:
             return False
 
         proc = state.process
+
+        # Cancel the reader task first so it stops feeding the queue
+        if state.reader_task and not state.reader_task.done():
+            state.reader_task.cancel()
+            try:
+                await state.reader_task
+            except asyncio.CancelledError:
+                pass
+
+        # Signal the event queue so spawn_streaming's consumer loop unblocks
+        if state.event_queue:
+            await state.event_queue.put(AgentEvent(
+                type=AgentEventType.ERROR,
+                message="Task was cancelled",
+            ))
+            await state.event_queue.put(_STREAM_END)
+
         if proc.returncode is not None:
-            # Already exited
+            # Already exited — let _cleanup_process handle removal
             return True
 
         logger.info(
