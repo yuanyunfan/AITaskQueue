@@ -29,14 +29,22 @@ class ConnectionManager:
             "timestamp": int(datetime.now(timezone.utc).timestamp() * 1000),
         }, default=str)
         async with self._lock:
-            dead: list[WebSocket] = []
-            for ws in self._connections:
-                try:
-                    await ws.send_text(message)
-                except Exception:
-                    dead.append(ws)
-            for ws in dead:
-                self._connections.remove(ws)
+            snapshot = list(self._connections)
+
+        async def _send(ws: WebSocket) -> WebSocket | None:
+            try:
+                await asyncio.wait_for(ws.send_text(message), timeout=5.0)
+            except Exception:
+                return ws
+            return None
+
+        results = await asyncio.gather(*(_send(ws) for ws in snapshot))
+        dead = [ws for ws in results if ws is not None]
+        if dead:
+            async with self._lock:
+                for ws in dead:
+                    if ws in self._connections:
+                        self._connections.remove(ws)
 
     @property
     def active_count(self) -> int:
