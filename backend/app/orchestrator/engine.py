@@ -185,7 +185,7 @@ class Orchestrator:
                 if reset:
                     # Free the agent if it was assigned
                     if task.assigned_agent:
-                        await agent_svc.free_agent(task.assigned_agent)
+                        await agent_svc.free_agent(task.assigned_agent, success=False)
                         # Remove from agent_tasks tracking
                         agent_task = self._agent_tasks.pop(task.assigned_agent, None)
                         if agent_task:
@@ -645,7 +645,7 @@ class Orchestrator:
                 decision_msg = f'\u4efb\u52a1 "{task_title}" \u91cd\u8bd5\u8017\u5c3d\uff0c\u6807\u8bb0\u4e3a\u5931\u8d25'
 
             # Free the sub-agent
-            await agent_svc.free_agent(agent_id)
+            await agent_svc.free_agent(agent_id, success=False)
 
             # Broadcast
             await self._ws.broadcast(
