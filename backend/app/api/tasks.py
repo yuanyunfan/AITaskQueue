@@ -18,14 +18,17 @@ async def list_projects(db: AsyncSession = Depends(get_db)):
 
 
 @router.get("")
-async def list_tasks(project: str | None = Query(None), db: AsyncSession = Depends(get_db)):
+async def list_tasks(
+    project: str | None = Query(None),
+    include_done: bool = Query(False),
+    db: AsyncSession = Depends(get_db),
+):
     svc = TaskService(db)
-    tasks = await svc.list_all()
-    # Filter by project if specified
-    if project == "__none__":
-        tasks = [t for t in tasks if t.project is None]
-    elif project:
-        tasks = [t for t in tasks if t.project == project]
+    tasks = await svc.list_all(
+        project=None if project == "__none__" else project,
+        project_is_none=(project == "__none__"),
+        exclude_done=not include_done,
+    )
     # Build parent→children map
     parent_ids = {t.id for t in tasks if any(c.parent_id == t.id for c in tasks)}
     children_map: dict[str, list] = {}

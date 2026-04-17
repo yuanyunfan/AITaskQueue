@@ -22,10 +22,21 @@ class TaskService:
         )
         return list(result.scalars().all())
 
-    async def list_all(self) -> list[Task]:
-        result = await self.session.execute(
-            select(Task).order_by(Task.sort_order, Task.created_at)
-        )
+    async def list_all(
+        self,
+        project: str | None = None,
+        project_is_none: bool = False,
+        exclude_done: bool = False,
+    ) -> list[Task]:
+        stmt = select(Task)
+        if project_is_none:
+            stmt = stmt.where(Task.project.is_(None))
+        elif project:
+            stmt = stmt.where(Task.project == project)
+        if exclude_done:
+            stmt = stmt.where(Task.status.notin_([TaskStatus.DONE, TaskStatus.FAILED]))
+        stmt = stmt.order_by(Task.sort_order, Task.created_at)
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
     async def get_children(self, parent_id: str) -> list[Task]:
