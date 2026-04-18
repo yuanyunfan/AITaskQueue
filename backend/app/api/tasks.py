@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -126,11 +126,17 @@ async def reject_task(task_id: str, db: AsyncSession = Depends(get_db)):
 
 
 @router.post("/{task_id}/pause")
-async def pause_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def pause_task(task_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)
     task = await svc.pause(task_id)
     if not task:
         raise HTTPException(status_code=400, detail="Task not running")
+
+    # Kill the running subprocess so it doesn't continue consuming resources
+    orchestrator = getattr(request.app.state, "orchestrator", None)
+    if orchestrator:
+        await orchestrator.cancel_task(task_id)
+
     resp = TaskResponse.from_model(task).model_dump()
     await ws_manager.broadcast("task:updated", resp)
     return resp

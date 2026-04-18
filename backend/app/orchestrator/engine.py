@@ -613,6 +613,14 @@ class Orchestrator:
             if not task:
                 return
 
+            # If the task was paused by the user, don't overwrite its status
+            if task.status == TaskStatus.PAUSED:
+                await task_svc.update_fields(
+                    task_id, assigned_agent=None, subprocess_pid=None,
+                )
+                await agent_svc.free_agent(agent_id, success=False)
+                return
+
             if task.retry_count < task.max_retries:
                 # Retry: re-queue the task
                 task.retry_count += 1
