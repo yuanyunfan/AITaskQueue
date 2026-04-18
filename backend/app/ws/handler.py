@@ -217,6 +217,11 @@ async def _handle_task_action(ws: WebSocket, payload: dict):
 
         if action == "pause":
             task = await task_svc.pause(task_id)
+            # Kill the subprocess if running; the orchestrator's finally block
+            # will see PAUSED status and clean up without overwriting it.
+            orchestrator = ws.app.state.orchestrator
+            if orchestrator:
+                await orchestrator.cancel_task(task_id)
         elif action == "resume":
             task = await task_svc.resume(task_id)
         elif action == "approve":
