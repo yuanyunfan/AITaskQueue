@@ -549,21 +549,22 @@ class ClaudeCodeRunner:
 
         proc = state.process
 
-        # Cancel the reader task first so it stops feeding the queue
+        # Put the ERROR event *before* cancelling the reader task, so the
+        # consumer is guaranteed to see it. The reader's finally block will
+        # put _STREAM_END after cancellation, which terminates the consumer.
+        if state.event_queue:
+            await state.event_queue.put(AgentEvent(
+                type=AgentEventType.ERROR,
+                message="Task was cancelled",
+            ))
+
+        # Cancel the reader task — its finally block will put _STREAM_END
         if state.reader_task and not state.reader_task.done():
             state.reader_task.cancel()
             try:
                 await state.reader_task
             except asyncio.CancelledError:
                 pass
-
-        # Signal the event queue so spawn_streaming's consumer loop unblocks
-        if state.event_queue:
-            await state.event_queue.put(AgentEvent(
-                type=AgentEventType.ERROR,
-                message="Task was cancelled",
-            ))
-            await state.event_queue.put(_STREAM_END)
 
         if proc.returncode is not None:
             # Already exited — remove state so _cleanup_process becomes a no-op
