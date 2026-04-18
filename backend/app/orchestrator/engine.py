@@ -52,6 +52,7 @@ class Orchestrator:
         self._started_at: datetime | None = None
         self._stopped = False
         self._tick_lock = asyncio.Lock()                  # prevent concurrent ticks
+        self._pausing_tasks: set[str] = set()             # tasks being paused (race guard)
 
     # ------------------------------------------------------------------
     # Lifecycle
@@ -635,7 +636,7 @@ class Orchestrator:
                 return
 
             # If the task was paused by the user, don't overwrite its status
-            if task.status == TaskStatus.PAUSED:
+            if task.status == TaskStatus.PAUSED or task_id in self._pausing_tasks:
                 await task_svc.update_fields(
                     task_id, assigned_agent=None, subprocess_pid=None,
                 )
@@ -737,6 +738,22 @@ class Orchestrator:
         killed = await self._runner.kill_process(task_id)
         # The _run_agent coroutine's finally block will handle agent cleanup
         return killed
+
+    async def pause_and_cancel(self, task_id: str) -> bool:
+        """Mark a task as pausing then kill its subprocess.
+
+        This ensures _fail_task won't overwrite PAUSED status even if it runs
+        before the DB commit propagates.
+        """
+        self._pausing_tasks.add(task_id)
+        try:
+            return await self._runner.kill_process(task_id)
+        finally:
+            # Clean up after a delay to ensure _fail_task has seen the flag
+            async def _cleanup():
+                await asyncio.sleep(5)
+                self._pausing_tasks.discard(task_id)
+            asyncio.create_task(_cleanup())
 
     @property
     def active_runner_count(self) -> int:

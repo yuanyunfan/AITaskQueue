@@ -144,7 +144,7 @@ async def pause_task(task_id: str, request: Request, db: AsyncSession = Depends(
     # Kill the running subprocess so it doesn't continue consuming resources
     orchestrator = getattr(request.app.state, "orchestrator", None)
     if orchestrator:
-        await orchestrator.cancel_task(task_id)
+        await orchestrator.pause_and_cancel(task_id)
 
     resp = TaskResponse.from_model(task).model_dump()
     await ws_manager.broadcast("task:updated", resp)

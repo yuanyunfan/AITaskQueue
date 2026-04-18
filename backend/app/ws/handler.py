@@ -222,7 +222,7 @@ async def _handle_task_action(ws: WebSocket, payload: dict):
             # will see PAUSED status and clean up without overwriting it.
             orchestrator = getattr(ws.app.state, 'orchestrator', None)
             if orchestrator:
-                await orchestrator.cancel_task(task_id)
+                await orchestrator.pause_and_cancel(task_id)
         elif action == "resume":
             task = await task_svc.resume(task_id)
         elif action == "approve":
