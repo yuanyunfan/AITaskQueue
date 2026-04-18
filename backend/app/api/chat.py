@@ -6,10 +6,11 @@ so Claude acts as a conversational assistant that knows about the current
 task queue state.
 """
 
+import asyncio
 import uuid
 import logging
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,11 +19,23 @@ from app.models.chat import ChatMessage
 from app.models.enums import TaskStatus
 from app.models.task import Task
 from app.schemas.chat import ChatMessageCreate, ChatMessageResponse
+from app.orchestrator.subprocess_runner import ClaudeCodeRunner
 from app.ws.manager import ws_manager
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+# Shared runner instance for all chat requests — tracked for shutdown cleanup
+_chat_runner = ClaudeCodeRunner()
+
+# Limit concurrent chat subprocess invocations
+_chat_semaphore = asyncio.Semaphore(3)
+
+
+def get_chat_runner() -> ClaudeCodeRunner:
+    """Return the shared chat runner (for shutdown cleanup)."""
+    return _chat_runner
 
 
 async def _build_system_context(session: AsyncSession) -> str:
@@ -117,17 +130,15 @@ async def _query_claude(user_message: str, system_context: str) -> str:
     Single-turn Claude query for chat responses.
     Uses CLI subprocess in json mode -- no tools, fast conversational reply.
     """
-    from app.orchestrator.subprocess_runner import ClaudeCodeRunner
-
-    runner = ClaudeCodeRunner()
-    try:
-        result_text, cost = await runner.run_once(
-            prompt=user_message,
-            system_prompt=system_context,
-            timeout_seconds=60,
-        )
-        logger.info("Chat query completed (cost=$%.4f)", cost)
-        return result_text or "\uff08Claude \u672a\u8fd4\u56de\u5185\u5bb9\uff09"
-    except RuntimeError as exc:
-        logger.error("Chat CLI query failed: %s", exc)
-        return f"\u62b1\u6b49\uff0cClaude \u54cd\u5e94\u51fa\u9519: {str(exc)[:200]}"
+    async with _chat_semaphore:
+        try:
+            result_text, cost = await _chat_runner.run_once(
+                prompt=user_message,
+                system_prompt=system_context,
+                timeout_seconds=60,
+            )
+            logger.info("Chat query completed (cost=$%.4f)", cost)
+            return result_text or "\uff08Claude \u672a\u8fd4\u56de\u5185\u5bb9\uff09"
+        except RuntimeError as exc:
+            logger.error("Chat CLI query failed: %s", exc)
+            return f"\u62b1\u6b49\uff0cClaude \u54cd\u5e94\u51fa\u9519: {str(exc)[:200]}"
