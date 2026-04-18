@@ -389,6 +389,27 @@ class Orchestrator:
 
         except asyncio.CancelledError:
             logger.info("Runner for agent %s cancelled", agent_id)
+            try:
+                async with self._session_factory() as session:
+                    task_svc = TaskService(session)
+                    task = await task_svc.get_by_id(task_id)
+                    if task and task.status == TaskStatus.RUNNING:
+                        await task_svc.update_fields(
+                            task_id,
+                            status=TaskStatus.QUEUED,
+                            assigned_agent=None,
+                            subprocess_pid=None,
+                        )
+                        agent_svc = AgentService(session)
+                        await agent_svc.free_agent(agent_id, success=False)
+                        await session.commit()
+                        logger.info(
+                            "Reset cancelled task %s to QUEUED", task_id,
+                        )
+            except Exception:
+                logger.exception(
+                    "Failed to reset task %s after cancellation", task_id,
+                )
         except Exception:
             logger.exception("Unexpected error in runner for agent %s", agent_id)
             await self._fail_task(
