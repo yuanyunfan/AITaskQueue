@@ -30,6 +30,7 @@ async def websocket_endpoint(ws: WebSocket, api_key: str = Query(default=None)):
     # production to enforce authentication on both connect and task actions.
     if settings.api_key:
         if not api_key or not hmac.compare_digest(api_key, settings.api_key):
+            await ws.accept()
             await ws.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or missing API key")
             return
 
