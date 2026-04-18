@@ -8,6 +8,7 @@ from app.config import settings
 from fastapi import Depends
 
 from app.api import health, tasks, agents, activities, history, chat
+from app.api.chat import get_chat_runner
 from app.api.deps import verify_api_key
 from app.ws.handler import ws_router
 from app.ws.manager import ws_manager
@@ -44,6 +45,12 @@ async def lifespan(app: FastAPI):
     if orchestrator:
         await orchestrator.stop()
         logger.info("Orchestrator stopped")
+
+    # Kill any chat subprocesses
+    chat_runner = get_chat_runner()
+    killed = await chat_runner.kill_all()
+    if killed:
+        logger.info("Killed %d chat subprocess(es) during shutdown", killed)
 
 
 app = FastAPI(
