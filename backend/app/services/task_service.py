@@ -68,7 +68,7 @@ class TaskService:
             description=description,
             project=project,
             parent_id=parent_id,
-            status=TaskStatus.BLOCKED,
+            status=TaskStatus.QUEUED,
             queue_type=QueueType(queue_type),
             priority=Priority(priority),
             estimated_minutes=estimated_minutes,
