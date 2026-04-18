@@ -8,7 +8,7 @@ class Settings(BaseSettings):
     database_url: str = ""  # Set via AITASK_DATABASE_URL env var (see .env.example)
 
     # App
-    debug: bool = True
+    debug: bool = False
     cors_origins: list[str] = ["http://localhost:5173"]
 
     # Authentication
