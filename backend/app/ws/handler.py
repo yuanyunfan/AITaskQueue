@@ -24,7 +24,10 @@ ws_router = APIRouter()
 
 @ws_router.websocket("/ws")
 async def websocket_endpoint(ws: WebSocket, api_key: str = Query(default=None)):
-    # Verify API key if configured
+    # Security note: When AITASK_API_KEY is not configured (empty), any client
+    # can connect and perform task mutations (pause, resume, approve, reject)
+    # via task:action messages. Set AITASK_API_KEY to a non-empty value in
+    # production to enforce authentication on both connect and task actions.
     if settings.api_key:
         if not api_key or not hmac.compare_digest(api_key, settings.api_key):
             await ws.close(code=status.WS_1008_POLICY_VIOLATION, reason="Invalid or missing API key")
@@ -189,12 +192,24 @@ async def _send_full_sync(ws: WebSocket):
 
 
 async def _handle_task_action(ws: WebSocket, payload: dict):
-    """Handle task actions from the frontend (pause, resume, approve, reject)."""
+    """Handle task actions from the frontend (pause, resume, approve, reject).
+
+    Security: Authorization relies on the API key check at WebSocket connect
+    time. If AITASK_API_KEY is not set, any connected client can invoke these
+    mutations. Ensure AITASK_API_KEY is configured in production environments.
+    """
     task_id = payload.get("taskId")
     action = payload.get("action")
 
     if not task_id or not action:
         return
+
+    if not settings.api_key:
+        logger.warning(
+            "Processing task action '%s' on task '%s' without API key authentication. "
+            "Set AITASK_API_KEY to enforce authorization.",
+            action, task_id,
+        )
 
     async with AsyncSessionLocal() as session:
         task_svc = TaskService(session)
