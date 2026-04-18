@@ -487,8 +487,10 @@ class ClaudeCodeRunner:
         if budget and budget > 0:
             cmd.extend(["--max-budget-usd", str(budget)])
 
-        # System prompt
+        # System prompt – validate to prevent flag injection
         if system_prompt:
+            if system_prompt.startswith("-"):
+                raise ValueError("system_prompt must not start with '-'")
             cmd.extend(["--system-prompt", system_prompt])
 
         # Allowed tools restriction (only pass when list is non-empty)
