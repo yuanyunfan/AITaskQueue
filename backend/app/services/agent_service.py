@@ -86,7 +86,14 @@ class AgentService:
             if len(parts) == 2 and parts[1].isdigit():
                 max_num = max(max_num, int(parts[1]))
         agent_num = max_num + 1
-        agent = SubAgent(id=f"sub-{agent_num:02d}")
+        # Safety check: ensure the generated ID doesn't already exist
+        while True:
+            candidate_id = f"sub-{agent_num:02d}"
+            existing = await self.get_sub_agent(candidate_id)
+            if existing is None:
+                break
+            agent_num += 1
+        agent = SubAgent(id=candidate_id)
         self.session.add(agent)
         await self.session.commit()
         await self.session.refresh(agent)
