@@ -439,7 +439,7 @@ class Orchestrator:
                 message=event.message[:500],
                 tool_name=event.tool_name,
                 progress_pct=event.progress_pct,
-                cost_usd=event.cost_usd if event.cost_usd else None,
+                cost_usd=event.cost_usd if event.cost_usd is not None else None,
             )
 
         await self._ws.broadcast(
@@ -452,7 +452,7 @@ class Orchestrator:
                 "message": event.message[:500],
                 "toolName": event.tool_name,
                 "progressPct": event.progress_pct,
-                "costUsd": event.cost_usd if event.cost_usd else None,
+                "costUsd": event.cost_usd if event.cost_usd is not None else None,
                 "timestamp": ts_ms,
             },
         )
