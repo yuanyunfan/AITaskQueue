@@ -726,7 +726,7 @@ class Orchestrator:
                         },
                     )
             except Exception:
-                pass  # never crash on heartbeat failure
+                logger.debug("Uptime broadcast failed", exc_info=True)
             await asyncio.sleep(1)
 
     # ------------------------------------------------------------------
