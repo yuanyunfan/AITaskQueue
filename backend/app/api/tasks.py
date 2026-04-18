@@ -30,11 +30,11 @@ async def list_tasks(
         exclude_done=not include_done,
     )
     # Build parent→children map
-    parent_ids = {t.id for t in tasks if any(c.parent_id == t.id for c in tasks)}
+    task_ids = {t.id for t in tasks}
     children_map: dict[str, list] = {}
     top_level = []
     for t in tasks:
-        if t.parent_id:
+        if t.parent_id and t.parent_id in task_ids:
             children_map.setdefault(t.parent_id, []).append(t)
         else:
             top_level.append(t)
