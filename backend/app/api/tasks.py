@@ -95,8 +95,16 @@ async def update_task(task_id: str, data: TaskUpdate, db: AsyncSession = Depends
 
 
 @router.delete("/{task_id}", status_code=204)
-async def delete_task(task_id: str, db: AsyncSession = Depends(get_db)):
+async def delete_task(task_id: str, request: Request, db: AsyncSession = Depends(get_db)):
     svc = TaskService(db)
+    # If task is currently running, cancel its subprocess before deleting
+    task = await svc.get_by_id(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    if task.status.value == "running":
+        orchestrator = getattr(request.app.state, "orchestrator", None)
+        if orchestrator:
+            await orchestrator.cancel_task(task_id)
     deleted = await svc.delete(task_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Task not found")
