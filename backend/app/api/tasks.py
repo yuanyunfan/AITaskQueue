@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db
 from app.services.task_service import TaskService
 from app.schemas.task import TaskCreate, TaskUpdate, TaskResponse, ReorderRequest
+from app.models.enums import TaskStatus
 from app.ws.manager import ws_manager
 
 router = APIRouter()
@@ -168,7 +169,7 @@ async def unblock_task(task_id: str, db: AsyncSession = Depends(get_db)):
     task = await svc.get_by_id(task_id)
     if not task or task.status.value != 'blocked':
         raise HTTPException(status_code=400, detail="Task not in blocked status")
-    task = await svc.update_fields(task_id, status='QUEUED')
+    task = await svc.update_fields(task_id, status=TaskStatus.QUEUED)
     resp = TaskResponse.from_model(task).model_dump()
     await ws_manager.broadcast("task:updated", resp)
     return resp
@@ -181,7 +182,7 @@ async def block_task(task_id: str, db: AsyncSession = Depends(get_db)):
     task = await svc.get_by_id(task_id)
     if not task or task.status.value not in ('queued', 'paused'):
         raise HTTPException(status_code=400, detail="Task must be queued or paused to block")
-    task = await svc.update_fields(task_id, status='BLOCKED')
+    task = await svc.update_fields(task_id, status=TaskStatus.BLOCKED)
     resp = TaskResponse.from_model(task).model_dump()
     await ws_manager.broadcast("task:updated", resp)
     return resp
